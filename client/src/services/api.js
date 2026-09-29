@@ -24,6 +24,17 @@ export const api = {
     return json;
   },
 
+  async forgotPassword(data) {
+    const res = await fetch(`${API_BASE}/auth/forgot-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || 'Password reset failed');
+    return json;
+  },
+
   async getMe(token) {
     const t = token || localStorage.getItem('apex_token');
     if (!t) return null;

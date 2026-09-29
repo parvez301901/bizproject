@@ -287,6 +287,41 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
+// Forgot / Reset Password
+app.post('/api/auth/forgot-password', async (req, res) => {
+  try {
+    const { email, new_password } = req.body;
+    if (!email || !new_password) {
+      return res.status(400).json({ error: 'Email and new password are required' });
+    }
+
+    if (new_password.length < 6) {
+      return res.status(400).json({ error: 'New password must be at least 6 characters long' });
+    }
+
+    const user = await getOne('SELECT * FROM users WHERE LOWER(TRIM(email)) = ?', [email.toLowerCase().trim()]);
+    if (!user) {
+      return res.status(404).json({ error: 'No account found with that email address' });
+    }
+
+    const password_hash = await bcrypt.hash(new_password, 10);
+    await query('UPDATE users SET password_hash = ? WHERE id = ?', [password_hash, user.id]);
+
+    await logActivity({
+      entity_type: 'auth',
+      entity_id: user.id,
+      user_id: user.id,
+      user_name: user.full_name,
+      action: 'PASSWORD_RESET',
+      details: `Password was reset successfully for account (${user.email})`
+    });
+
+    res.json({ success: true, message: 'Password has been reset successfully. You can now log in with your new password.' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Social Login / Registration (Google, Facebook, Twitter, GitHub, LinkedIn)
 app.post('/api/auth/social', async (req, res) => {
   try {

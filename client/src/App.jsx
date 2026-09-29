@@ -252,6 +252,17 @@ export default function App() {
     }
   };
 
+  // If no user is logged in, show the dedicated full-page Login & Registration interface
+  if (!currentUser) {
+    return (
+      <AuthModal
+        isPage={true}
+        isRequired={true}
+        onAuthSuccess={handleAuthSuccess}
+      />
+    );
+  }
+
   return (
     <div className="flex h-screen bg-[#f8fafc] text-slate-800 antialiased overflow-hidden font-sans">
       {/* Sleek Sidebar with Light Green Theme & Auth Controls */}
@@ -707,13 +718,11 @@ export default function App() {
         />
       )}
 
-      {/* Authentication Modal */}
-      {(!currentUser || showAuthModal) && (
+      {/* Authentication Modal (when triggered while logged in) */}
+      {showAuthModal && (
         <AuthModal
-          isRequired={!currentUser}
-          onClose={() => {
-            if (currentUser) setShowAuthModal(false);
-          }}
+          isRequired={false}
+          onClose={() => setShowAuthModal(false)}
           onAuthSuccess={handleAuthSuccess}
         />
       )}
