@@ -489,7 +489,7 @@ async function query(sql, params = []) {
   if (dbType === 'postgres' && pgPool) {
     // Convert ? to $1, $2, etc for postgres if needed
     let pSql = sql
-      .replace(/date\('now'\)/gi, 'CURRENT_DATE')
+      .replace(/date\('now'\)/gi, "TO_CHAR(CURRENT_DATE, 'YYYY-MM-DD')")
       .replace(/datetime\('now'\)/gi, 'CURRENT_TIMESTAMP');
     let pIdx = 1;
     while (pSql.includes('?')) {
