@@ -1,0 +1,600 @@
+{
+  "f_antigravity": [
+    {
+      "name": "accounting",
+      "path": "F:/antigravity/accounting",
+      "github": "Local only (No remote)",
+      "server": "Next.js (Node: npm run dev / port 3000)"
+    },
+    {
+      "name": "agent",
+      "path": "F:/antigravity/agent",
+      "github": "Local only (No remote)",
+      "server": "Static / Script / Document"
+    },
+    {
+      "name": "aluminai",
+      "path": "F:/antigravity/aluminai",
+      "github": "https://github.com/parvez301901/aluminai-directory-app.git",
+      "server": "Static / Script / Document"
+    },
+    {
+      "name": "bizassistant",
+      "path": "F:/antigravity/bizassistant",
+      "github": "Local only (No remote)",
+      "server": "Static / Script / Document"
+    },
+    {
+      "name": "bizdental",
+      "path": "F:/antigravity/bizdental",
+      "github": "Local only (No remote)",
+      "server": "Static / Script / Document"
+    },
+    {
+      "name": "biznessimpact-design",
+      "path": "F:/antigravity/biznessimpact-design",
+      "github": "Local only (No remote)",
+      "server": "Static / Script / Document"
+    },
+    {
+      "name": "bizproject",
+      "path": "F:/antigravity/bizproject",
+      "github": "Local only (No remote)",
+      "server": "Express.js (Node server), Python"
+    },
+    {
+      "name": "businessimpact",
+      "path": "F:/antigravity/businessimpact",
+      "github": "Local only (No remote)",
+      "server": "Static / Script / Document"
+    },
+    {
+      "name": "chrome-extensions",
+      "path": "F:/antigravity/chrome-extensions",
+      "github": "Local only (No remote)",
+      "server": "Static / Script / Document"
+    },
+    {
+      "name": "crm",
+      "path": "F:/antigravity/crm",
+      "github": "Local only (No remote)",
+      "server": "Next.js (Node: npm run dev / port 3000)"
+    },
+    {
+      "name": "game",
+      "path": "F:/antigravity/game",
+      "github": "Local only (No remote)",
+      "server": "Static / Script / Document"
+    },
+    {
+      "name": "hallmark-test",
+      "path": "F:/antigravity/hallmark-test",
+      "github": "Local only (No remote)",
+      "server": "Static / Script / Document"
+    },
+    {
+      "name": "infographicsfactory",
+      "path": "F:/antigravity/infographicsfactory",
+      "github": "Local only (No remote)",
+      "server": "Python"
+    },
+    {
+      "name": "irishhelp",
+      "path": "F:/antigravity/irishhelp",
+      "github": "Local only (No remote)",
+      "server": "Static / Script / Document"
+    },
+    {
+      "name": "lajobs",
+      "path": "F:/antigravity/lajobs",
+      "github": "Local only (No remote)",
+      "server": "Static / Script / Document"
+    },
+    {
+      "name": "leadsconnect",
+      "path": "F:/antigravity/leadsconnect",
+      "github": "Local only (No remote)",
+      "server": "Static / Script / Document"
+    },
+    {
+      "name": "linkbook",
+      "path": "F:/antigravity/linkbook",
+      "github": "Local only (No remote)",
+      "server": "Static / Script / Document"
+    },
+    {
+      "name": "marketing-doc",
+      "path": "F:/antigravity/marketing-doc",
+      "github": "Local only (No remote)",
+      "server": "Static / Script / Document"
+    },
+    {
+      "name": "marketingtools",
+      "path": "F:/antigravity/marketingtools",
+      "github": "Local only (No remote)",
+      "server": "Next.js (Node: npm run dev / port 3000)"
+    },
+    {
+      "name": "mobile-apps",
+      "path": "F:/antigravity/mobile-apps",
+      "github": "Local only (No remote)",
+      "server": "Static / Script / Document"
+    },
+    {
+      "name": "nextgenerationlearning",
+      "path": "F:/antigravity/nextgenerationlearning",
+      "github": "Local only (No remote)",
+      "server": "Next.js (Node: npm run dev / port 3000)"
+    },
+    {
+      "name": "ostad",
+      "path": "F:/antigravity/ostad",
+      "github": "Local only (No remote)",
+      "server": "Static / Script / Document"
+    },
+    {
+      "name": "paperbook",
+      "path": "F:/antigravity/paperbook",
+      "github": "Local only (No remote)",
+      "server": "Node.js app"
+    },
+    {
+      "name": "pdf",
+      "path": "F:/antigravity/pdf",
+      "github": "Local only (No remote)",
+      "server": "Static / Script / Document"
+    },
+    {
+      "name": "postextractor",
+      "path": "F:/antigravity/postextractor",
+      "github": "Local only (No remote)",
+      "server": "Static / Script / Document"
+    },
+    {
+      "name": "questions",
+      "path": "F:/antigravity/questions",
+      "github": "Local only (No remote)",
+      "server": "PHP / Apache (XAMPP http://localhost/...)"
+    },
+    {
+      "name": "recipesjack",
+      "path": "F:/antigravity/recipesjack",
+      "github": "Local only (No remote)",
+      "server": "Python"
+    },
+    {
+      "name": "riyadh",
+      "path": "F:/antigravity/riyadh",
+      "github": "Local only (No remote)",
+      "server": "Static / Script / Document"
+    },
+    {
+      "name": "riyadh-2",
+      "path": "F:/antigravity/riyadh-2",
+      "github": "Local only (No remote)",
+      "server": "Static / Script / Document"
+    },
+    {
+      "name": "soapcommunity",
+      "path": "F:/antigravity/soapcommunity",
+      "github": "Local only (No remote)",
+      "server": "Static / Script / Document"
+    },
+    {
+      "name": "songshare",
+      "path": "F:/antigravity/songshare",
+      "github": "Local only (No remote)",
+      "server": "Static / Script / Document"
+    },
+    {
+      "name": "studentconsultancy",
+      "path": "F:/antigravity/studentconsultancy",
+      "github": "Local only (No remote)",
+      "server": "Docker"
+    },
+    {
+      "name": "sumonvai",
+      "path": "F:/antigravity/sumonvai",
+      "github": "Local only (No remote)",
+      "server": "Vite / React (Node: npm run dev)"
+    },
+    {
+      "name": "tailwind",
+      "path": "F:/antigravity/tailwind",
+      "github": "Local only (No remote)",
+      "server": "Node.js app"
+    },
+    {
+      "name": "whatsappgenie",
+      "path": "F:/antigravity/whatsappgenie",
+      "github": "Local only (No remote)",
+      "server": "Express.js (Node server)"
+    }
+  ],
+  "c_xampp_htdocs": [
+    {
+      "name": "New folder",
+      "path": "C:/xampp/htdocs/New folder",
+      "github": "Local only (No remote)",
+      "server": "Static / Script / Document"
+    },
+    {
+      "name": "ai-consultant-kyc",
+      "path": "C:/xampp/htdocs/ai-consultant-kyc",
+      "github": "Local only (No remote)",
+      "server": "PHP / Apache (XAMPP http://localhost/...)"
+    },
+    {
+      "name": "anysilicon",
+      "path": "C:/xampp/htdocs/anysilicon",
+      "github": "Local only (No remote)",
+      "server": "PHP / Apache (XAMPP http://localhost/...)"
+    },
+    {
+      "name": "backend",
+      "path": "C:/xampp/htdocs/backend",
+      "github": "Local only (No remote)",
+      "server": "PHP / Apache (XAMPP http://localhost/...)"
+    },
+    {
+      "name": "backendgit",
+      "path": "C:/xampp/htdocs/backendgit",
+      "github": "Local only (No remote)",
+      "server": "Static / Script / Document"
+    },
+    {
+      "name": "bakerytally",
+      "path": "C:/xampp/htdocs/bakerytally",
+      "github": "Local only (No remote)",
+      "server": "Static / Script / Document"
+    },
+    {
+      "name": "bikerepairshop",
+      "path": "C:/xampp/htdocs/bikerepairshop",
+      "github": "Local only (No remote)",
+      "server": "Static / Script / Document"
+    },
+    {
+      "name": "biz-impact-claude",
+      "path": "C:/xampp/htdocs/biz-impact-claude",
+      "github": "Local only (No remote)",
+      "server": "PHP / Apache (XAMPP http://localhost/...)"
+    },
+    {
+      "name": "biz-impact-final-2",
+      "path": "C:/xampp/htdocs/biz-impact-final-2",
+      "github": "Local only (No remote)",
+      "server": "PHP / Apache (XAMPP http://localhost/...)"
+    },
+    {
+      "name": "bizcommerz",
+      "path": "C:/xampp/htdocs/bizcommerz",
+      "github": "Local only (No remote)",
+      "server": "Laravel / PHP (Apache or php artisan serve), Vite / React (Node: npm run dev)"
+    },
+    {
+      "name": "biznessimpact",
+      "path": "C:/xampp/htdocs/biznessimpact",
+      "github": "Local only (No remote)",
+      "server": "PHP / Apache (XAMPP http://localhost/...)"
+    },
+    {
+      "name": "brickscraft",
+      "path": "C:/xampp/htdocs/brickscraft",
+      "github": "Local only (No remote)",
+      "server": "PHP / Apache (XAMPP http://localhost/...)"
+    },
+    {
+      "name": "businessautomata",
+      "path": "C:/xampp/htdocs/businessautomata",
+      "github": "Local only (No remote)",
+      "server": "PHP / Apache (XAMPP http://localhost/...), Python"
+    },
+    {
+      "name": "catalogengine",
+      "path": "C:/xampp/htdocs/catalogengine",
+      "github": "Local only (No remote)",
+      "server": "PHP / Apache (XAMPP http://localhost/...)"
+    },
+    {
+      "name": "cityhelp",
+      "path": "C:/xampp/htdocs/cityhelp",
+      "github": "Local only (No remote)",
+      "server": "Laravel / PHP (Apache or php artisan serve), Vite / React (Node: npm run dev)"
+    },
+    {
+      "name": "classplus",
+      "path": "C:/xampp/htdocs/classplus",
+      "github": "Local only (No remote)",
+      "server": "Laravel / PHP (Apache or php artisan serve), Vite / React (Node: npm run dev)"
+    },
+    {
+      "name": "clientsupport",
+      "path": "C:/xampp/htdocs/clientsupport",
+      "github": "Local only (No remote)",
+      "server": "Laravel / PHP (Apache or php artisan serve), Vite / React (Node: npm run dev)"
+    },
+    {
+      "name": "dashboard",
+      "path": "C:/xampp/htdocs/dashboard",
+      "github": "Local only (No remote)",
+      "server": "PHP / Apache (XAMPP http://localhost/...)"
+    },
+    {
+      "name": "devxhub-blog",
+      "path": "C:/xampp/htdocs/devxhub-blog",
+      "github": "Local only (No remote)",
+      "server": "PHP / Apache (XAMPP http://localhost/...)"
+    },
+    {
+      "name": "elderland",
+      "path": "C:/xampp/htdocs/elderland",
+      "github": "Local only (No remote)",
+      "server": "PHP / Apache (XAMPP http://localhost/...)"
+    },
+    {
+      "name": "elementortest",
+      "path": "C:/xampp/htdocs/elementortest",
+      "github": "Local only (No remote)",
+      "server": "PHP / Apache (XAMPP http://localhost/...)"
+    },
+    {
+      "name": "fastfactory",
+      "path": "C:/xampp/htdocs/fastfactory",
+      "github": "Local only (No remote)",
+      "server": "Static / Script / Document"
+    },
+    {
+      "name": "flatowners",
+      "path": "C:/xampp/htdocs/flatowners",
+      "github": "https://github.com/parvez301901/flatowners.git",
+      "server": "Laravel / PHP (Apache or php artisan serve), Node.js app"
+    },
+    {
+      "name": "foodrino",
+      "path": "C:/xampp/htdocs/foodrino",
+      "github": "Local only (No remote)",
+      "server": "PHP / Apache (XAMPP http://localhost/...)"
+    },
+    {
+      "name": "gemini-test",
+      "path": "C:/xampp/htdocs/gemini-test",
+      "github": "Local only (No remote)",
+      "server": "Static / Script / Document"
+    },
+    {
+      "name": "hardwarebee",
+      "path": "C:/xampp/htdocs/hardwarebee",
+      "github": "Local only (No remote)",
+      "server": "Static / Script / Document"
+    },
+    {
+      "name": "homeparktheme",
+      "path": "C:/xampp/htdocs/homeparktheme",
+      "github": "Local only (No remote)",
+      "server": "PHP / Apache (XAMPP http://localhost/...)"
+    },
+    {
+      "name": "img",
+      "path": "C:/xampp/htdocs/img",
+      "github": "Local only (No remote)",
+      "server": "Static / Script / Document"
+    },
+    {
+      "name": "journal",
+      "path": "C:/xampp/htdocs/journal",
+      "github": "Local only (No remote)",
+      "server": "PHP / Apache (XAMPP http://localhost/...)"
+    },
+    {
+      "name": "kandyvape",
+      "path": "C:/xampp/htdocs/kandyvape",
+      "github": "Local only (No remote)",
+      "server": "PHP / Apache (XAMPP http://localhost/...)"
+    },
+    {
+      "name": "mapp",
+      "path": "C:/xampp/htdocs/mapp",
+      "github": "Local only (No remote)",
+      "server": "Static / Script / Document"
+    },
+    {
+      "name": "name-your-price",
+      "path": "C:/xampp/htdocs/name-your-price",
+      "github": "Local only (No remote)",
+      "server": "PHP / Apache (XAMPP http://localhost/...)"
+    },
+    {
+      "name": "organic-new",
+      "path": "C:/xampp/htdocs/organic-new",
+      "github": "Local only (No remote)",
+      "server": "PHP / Apache (XAMPP http://localhost/...)"
+    },
+    {
+      "name": "organic-server",
+      "path": "C:/xampp/htdocs/organic-server",
+      "github": "Local only (No remote)",
+      "server": "PHP / Apache (XAMPP http://localhost/...)"
+    },
+    {
+      "name": "organicnutrition",
+      "path": "C:/xampp/htdocs/organicnutrition",
+      "github": "Local only (No remote)",
+      "server": "PHP / Apache (XAMPP http://localhost/...)"
+    },
+    {
+      "name": "organics",
+      "path": "C:/xampp/htdocs/organics",
+      "github": "Local only (No remote)",
+      "server": "PHP / Apache (XAMPP http://localhost/...)"
+    },
+    {
+      "name": "parlour",
+      "path": "C:/xampp/htdocs/parlour",
+      "github": "Local only (No remote)",
+      "server": "Static / Script / Document"
+    },
+    {
+      "name": "php-test",
+      "path": "C:/xampp/htdocs/php-test",
+      "github": "Local only (No remote)",
+      "server": "PHP / Apache (XAMPP http://localhost/...)"
+    },
+    {
+      "name": "phptest",
+      "path": "C:/xampp/htdocs/phptest",
+      "github": "Local only (No remote)",
+      "server": "PHP / Apache (XAMPP http://localhost/...)"
+    },
+    {
+      "name": "pippuri",
+      "path": "C:/xampp/htdocs/pippuri",
+      "github": "https://github.com/hudacse6/ravintola-pippuri.git",
+      "server": "PHP / Apache (XAMPP http://localhost/...)"
+    },
+    {
+      "name": "pippuri-old",
+      "path": "C:/xampp/htdocs/pippuri-old",
+      "github": "Local only (No remote)",
+      "server": "PHP / Apache (XAMPP http://localhost/...)"
+    },
+    {
+      "name": "rahimvai",
+      "path": "C:/xampp/htdocs/rahimvai",
+      "github": "Local only (No remote)",
+      "server": "PHP / Apache (XAMPP http://localhost/...)"
+    },
+    {
+      "name": "ricemill",
+      "path": "C:/xampp/htdocs/ricemill",
+      "github": "Local only (No remote)",
+      "server": "PHP / Apache (XAMPP http://localhost/...)"
+    },
+    {
+      "name": "rishitamart",
+      "path": "C:/xampp/htdocs/rishitamart",
+      "github": "Local only (No remote)",
+      "server": "PHP / Apache (XAMPP http://localhost/...)"
+    },
+    {
+      "name": "saloon",
+      "path": "C:/xampp/htdocs/saloon",
+      "github": "Local only (No remote)",
+      "server": "Static / Script / Document"
+    },
+    {
+      "name": "sharparchive",
+      "path": "C:/xampp/htdocs/sharparchive",
+      "github": "https://github.com/SharpArchiveLLC/www.sharparchive.com.git",
+      "server": "PHP / Apache (XAMPP http://localhost/...)"
+    },
+    {
+      "name": "sharparchive-blog",
+      "path": "C:/xampp/htdocs/sharparchive-blog",
+      "github": "Local only (No remote)",
+      "server": "PHP / Apache (XAMPP http://localhost/...)"
+    },
+    {
+      "name": "sharparchive-help",
+      "path": "C:/xampp/htdocs/sharparchive-help",
+      "github": "Local only (No remote)",
+      "server": "PHP / Apache (XAMPP http://localhost/...), Python"
+    },
+    {
+      "name": "sharparchiveserver",
+      "path": "C:/xampp/htdocs/sharparchiveserver",
+      "github": "Local only (No remote)",
+      "server": "PHP / Apache (XAMPP http://localhost/...)"
+    },
+    {
+      "name": "shoefactory",
+      "path": "C:/xampp/htdocs/shoefactory",
+      "github": "Local only (No remote)",
+      "server": "Static / Script / Document"
+    },
+    {
+      "name": "sms",
+      "path": "C:/xampp/htdocs/sms",
+      "github": "Local only (No remote)",
+      "server": "PHP / Apache (XAMPP http://localhost/...)"
+    },
+    {
+      "name": "socialpost",
+      "path": "C:/xampp/htdocs/socialpost",
+      "github": "Local only (No remote)",
+      "server": "PHP / Apache (XAMPP http://localhost/...)"
+    },
+    {
+      "name": "solargy",
+      "path": "C:/xampp/htdocs/solargy",
+      "github": "Local only (No remote)",
+      "server": "PHP / Apache (XAMPP http://localhost/...)"
+    },
+    {
+      "name": "songsar",
+      "path": "C:/xampp/htdocs/songsar",
+      "github": "Local only (No remote)",
+      "server": "Static / Script / Document"
+    },
+    {
+      "name": "surveyhub",
+      "path": "C:/xampp/htdocs/surveyhub",
+      "github": "Local only (No remote)",
+      "server": "Laravel / PHP (Apache or php artisan serve), Vite / React (Node: npm run dev)"
+    },
+    {
+      "name": "techpos",
+      "path": "C:/xampp/htdocs/techpos",
+      "github": "Local only (No remote)",
+      "server": "PHP / Apache (XAMPP http://localhost/...)"
+    },
+    {
+      "name": "tohobill",
+      "path": "C:/xampp/htdocs/tohobill",
+      "github": "Local only (No remote)",
+      "server": "PHP / Apache (XAMPP http://localhost/...)"
+    },
+    {
+      "name": "tripdust_1",
+      "path": "C:/xampp/htdocs/tripdust_1",
+      "github": "Local only (No remote)",
+      "server": "Static / Script / Document"
+    },
+    {
+      "name": "trucklagbe",
+      "path": "C:/xampp/htdocs/trucklagbe",
+      "github": "Local only (No remote)",
+      "server": "PHP / Apache (XAMPP http://localhost/...)"
+    },
+    {
+      "name": "trucklagbe2",
+      "path": "C:/xampp/htdocs/trucklagbe2",
+      "github": "Local only (No remote)",
+      "server": "PHP / Apache (XAMPP http://localhost/...)"
+    },
+    {
+      "name": "webalizer",
+      "path": "C:/xampp/htdocs/webalizer",
+      "github": "Local only (No remote)",
+      "server": "Static / Script / Document"
+    },
+    {
+      "name": "wedevsplugin",
+      "path": "C:/xampp/htdocs/wedevsplugin",
+      "github": "Local only (No remote)",
+      "server": "PHP / Apache (XAMPP http://localhost/...)"
+    },
+    {
+      "name": "wordpress-6.9.4",
+      "path": "C:/xampp/htdocs/wordpress-6.9.4",
+      "github": "Local only (No remote)",
+      "server": "Static / Script / Document"
+    },
+    {
+      "name": "xampp",
+      "path": "C:/xampp/htdocs/xampp",
+      "github": "Local only (No remote)",
+      "server": "Static / Script / Document"
+    }
+  ]
+}

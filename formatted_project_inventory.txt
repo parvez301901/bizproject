@@ -1,0 +1,501 @@
+TOTAL F:\antigravity: 35
+TOTAL C:\xampp\htdocs: 64
+
+=== F:\antigravity ===
+1. Name: accounting
+   Path: F:/antigravity/accounting
+   Server: Next.js (Node: npm run dev / port 3000)
+   GitHub: Local only (No remote)
+
+2. Name: agent
+   Path: F:/antigravity/agent
+   Server: Static / Script / Document
+   GitHub: Local only (No remote)
+
+3. Name: aluminai
+   Path: F:/antigravity/aluminai
+   Server: Static / Script / Document
+   GitHub: https://github.com/parvez301901/aluminai-directory-app.git
+
+4. Name: bizassistant
+   Path: F:/antigravity/bizassistant
+   Server: Static / Script / Document
+   GitHub: Local only (No remote)
+
+5. Name: bizdental
+   Path: F:/antigravity/bizdental
+   Server: Static / Script / Document
+   GitHub: Local only (No remote)
+
+6. Name: biznessimpact-design
+   Path: F:/antigravity/biznessimpact-design
+   Server: Static / Script / Document
+   GitHub: Local only (No remote)
+
+7. Name: bizproject
+   Path: F:/antigravity/bizproject
+   Server: Express.js (Node server), Python
+   GitHub: Local only (No remote)
+
+8. Name: businessimpact
+   Path: F:/antigravity/businessimpact
+   Server: Static / Script / Document
+   GitHub: Local only (No remote)
+
+9. Name: chrome-extensions
+   Path: F:/antigravity/chrome-extensions
+   Server: Static / Script / Document
+   GitHub: Local only (No remote)
+
+10. Name: crm
+   Path: F:/antigravity/crm
+   Server: Next.js (Node: npm run dev / port 3000)
+   GitHub: Local only (No remote)
+
+11. Name: game
+   Path: F:/antigravity/game
+   Server: Static / Script / Document
+   GitHub: Local only (No remote)
+
+12. Name: hallmark-test
+   Path: F:/antigravity/hallmark-test
+   Server: Static / Script / Document
+   GitHub: Local only (No remote)
+
+13. Name: infographicsfactory
+   Path: F:/antigravity/infographicsfactory
+   Server: Python
+   GitHub: Local only (No remote)
+
+14. Name: irishhelp
+   Path: F:/antigravity/irishhelp
+   Server: Static / Script / Document
+   GitHub: Local only (No remote)
+
+15. Name: lajobs
+   Path: F:/antigravity/lajobs
+   Server: Static / Script / Document
+   GitHub: Local only (No remote)
+
+16. Name: leadsconnect
+   Path: F:/antigravity/leadsconnect
+   Server: Static / Script / Document
+   GitHub: Local only (No remote)
+
+17. Name: linkbook
+   Path: F:/antigravity/linkbook
+   Server: Static / Script / Document
+   GitHub: Local only (No remote)
+
+18. Name: marketing-doc
+   Path: F:/antigravity/marketing-doc
+   Server: Static / Script / Document
+   GitHub: Local only (No remote)
+
+19. Name: marketingtools
+   Path: F:/antigravity/marketingtools
+   Server: Next.js (Node: npm run dev / port 3000)
+   GitHub: Local only (No remote)
+
+20. Name: mobile-apps
+   Path: F:/antigravity/mobile-apps
+   Server: Static / Script / Document
+   GitHub: Local only (No remote)
+
+21. Name: nextgenerationlearning
+   Path: F:/antigravity/nextgenerationlearning
+   Server: Next.js (Node: npm run dev / port 3000)
+   GitHub: Local only (No remote)
+
+22. Name: ostad
+   Path: F:/antigravity/ostad
+   Server: Static / Script / Document
+   GitHub: Local only (No remote)
+
+23. Name: paperbook
+   Path: F:/antigravity/paperbook
+   Server: Node.js app
+   GitHub: Local only (No remote)
+
+24. Name: pdf
+   Path: F:/antigravity/pdf
+   Server: Static / Script / Document
+   GitHub: Local only (No remote)
+
+25. Name: postextractor
+   Path: F:/antigravity/postextractor
+   Server: Static / Script / Document
+   GitHub: Local only (No remote)
+
+26. Name: questions
+   Path: F:/antigravity/questions
+   Server: PHP / Apache (XAMPP http://localhost/...)
+   GitHub: Local only (No remote)
+
+27. Name: recipesjack
+   Path: F:/antigravity/recipesjack
+   Server: Python
+   GitHub: Local only (No remote)
+
+28. Name: riyadh
+   Path: F:/antigravity/riyadh
+   Server: Static / Script / Document
+   GitHub: Local only (No remote)
+
+29. Name: riyadh-2
+   Path: F:/antigravity/riyadh-2
+   Server: Static / Script / Document
+   GitHub: Local only (No remote)
+
+30. Name: soapcommunity
+   Path: F:/antigravity/soapcommunity
+   Server: Static / Script / Document
+   GitHub: Local only (No remote)
+
+31. Name: songshare
+   Path: F:/antigravity/songshare
+   Server: Static / Script / Document
+   GitHub: Local only (No remote)
+
+32. Name: studentconsultancy
+   Path: F:/antigravity/studentconsultancy
+   Server: Docker
+   GitHub: Local only (No remote)
+
+33. Name: sumonvai
+   Path: F:/antigravity/sumonvai
+   Server: Vite / React (Node: npm run dev)
+   GitHub: Local only (No remote)
+
+34. Name: tailwind
+   Path: F:/antigravity/tailwind
+   Server: Node.js app
+   GitHub: Local only (No remote)
+
+35. Name: whatsappgenie
+   Path: F:/antigravity/whatsappgenie
+   Server: Express.js (Node server)
+   GitHub: Local only (No remote)
+
+
+=== C:\xampp\htdocs ===
+1. Name: New folder
+   Path: C:/xampp/htdocs/New folder
+   Server: Static / Script / Document
+   GitHub: Local only (No remote)
+
+2. Name: ai-consultant-kyc
+   Path: C:/xampp/htdocs/ai-consultant-kyc
+   Server: PHP / Apache (XAMPP http://localhost/...)
+   GitHub: Local only (No remote)
+
+3. Name: anysilicon
+   Path: C:/xampp/htdocs/anysilicon
+   Server: PHP / Apache (XAMPP http://localhost/...)
+   GitHub: Local only (No remote)
+
+4. Name: backend
+   Path: C:/xampp/htdocs/backend
+   Server: PHP / Apache (XAMPP http://localhost/...)
+   GitHub: Local only (No remote)
+
+5. Name: backendgit
+   Path: C:/xampp/htdocs/backendgit
+   Server: Static / Script / Document
+   GitHub: Local only (No remote)
+
+6. Name: bakerytally
+   Path: C:/xampp/htdocs/bakerytally
+   Server: Static / Script / Document
+   GitHub: Local only (No remote)
+
+7. Name: bikerepairshop
+   Path: C:/xampp/htdocs/bikerepairshop
+   Server: Static / Script / Document
+   GitHub: Local only (No remote)
+
+8. Name: biz-impact-claude
+   Path: C:/xampp/htdocs/biz-impact-claude
+   Server: PHP / Apache (XAMPP http://localhost/...)
+   GitHub: Local only (No remote)
+
+9. Name: biz-impact-final-2
+   Path: C:/xampp/htdocs/biz-impact-final-2
+   Server: PHP / Apache (XAMPP http://localhost/...)
+   GitHub: Local only (No remote)
+
+10. Name: bizcommerz
+   Path: C:/xampp/htdocs/bizcommerz
+   Server: Laravel / PHP (Apache or php artisan serve), Vite / React (Node: npm run dev)
+   GitHub: Local only (No remote)
+
+11. Name: biznessimpact
+   Path: C:/xampp/htdocs/biznessimpact
+   Server: PHP / Apache (XAMPP http://localhost/...)
+   GitHub: Local only (No remote)
+
+12. Name: brickscraft
+   Path: C:/xampp/htdocs/brickscraft
+   Server: PHP / Apache (XAMPP http://localhost/...)
+   GitHub: Local only (No remote)
+
+13. Name: businessautomata
+   Path: C:/xampp/htdocs/businessautomata
+   Server: PHP / Apache (XAMPP http://localhost/...), Python
+   GitHub: Local only (No remote)
+
+14. Name: catalogengine
+   Path: C:/xampp/htdocs/catalogengine
+   Server: PHP / Apache (XAMPP http://localhost/...)
+   GitHub: Local only (No remote)
+
+15. Name: cityhelp
+   Path: C:/xampp/htdocs/cityhelp
+   Server: Laravel / PHP (Apache or php artisan serve), Vite / React (Node: npm run dev)
+   GitHub: Local only (No remote)
+
+16. Name: classplus
+   Path: C:/xampp/htdocs/classplus
+   Server: Laravel / PHP (Apache or php artisan serve), Vite / React (Node: npm run dev)
+   GitHub: Local only (No remote)
+
+17. Name: clientsupport
+   Path: C:/xampp/htdocs/clientsupport
+   Server: Laravel / PHP (Apache or php artisan serve), Vite / React (Node: npm run dev)
+   GitHub: Local only (No remote)
+
+18. Name: dashboard
+   Path: C:/xampp/htdocs/dashboard
+   Server: PHP / Apache (XAMPP http://localhost/...)
+   GitHub: Local only (No remote)
+
+19. Name: devxhub-blog
+   Path: C:/xampp/htdocs/devxhub-blog
+   Server: PHP / Apache (XAMPP http://localhost/...)
+   GitHub: Local only (No remote)
+
+20. Name: elderland
+   Path: C:/xampp/htdocs/elderland
+   Server: PHP / Apache (XAMPP http://localhost/...)
+   GitHub: Local only (No remote)
+
+21. Name: elementortest
+   Path: C:/xampp/htdocs/elementortest
+   Server: PHP / Apache (XAMPP http://localhost/...)
+   GitHub: Local only (No remote)
+
+22. Name: fastfactory
+   Path: C:/xampp/htdocs/fastfactory
+   Server: Static / Script / Document
+   GitHub: Local only (No remote)
+
+23. Name: flatowners
+   Path: C:/xampp/htdocs/flatowners
+   Server: Laravel / PHP (Apache or php artisan serve), Node.js app
+   GitHub: https://github.com/parvez301901/flatowners.git
+
+24. Name: foodrino
+   Path: C:/xampp/htdocs/foodrino
+   Server: PHP / Apache (XAMPP http://localhost/...)
+   GitHub: Local only (No remote)
+
+25. Name: gemini-test
+   Path: C:/xampp/htdocs/gemini-test
+   Server: Static / Script / Document
+   GitHub: Local only (No remote)
+
+26. Name: hardwarebee
+   Path: C:/xampp/htdocs/hardwarebee
+   Server: Static / Script / Document
+   GitHub: Local only (No remote)
+
+27. Name: homeparktheme
+   Path: C:/xampp/htdocs/homeparktheme
+   Server: PHP / Apache (XAMPP http://localhost/...)
+   GitHub: Local only (No remote)
+
+28. Name: img
+   Path: C:/xampp/htdocs/img
+   Server: Static / Script / Document
+   GitHub: Local only (No remote)
+
+29. Name: journal
+   Path: C:/xampp/htdocs/journal
+   Server: PHP / Apache (XAMPP http://localhost/...)
+   GitHub: Local only (No remote)
+
+30. Name: kandyvape
+   Path: C:/xampp/htdocs/kandyvape
+   Server: PHP / Apache (XAMPP http://localhost/...)
+   GitHub: Local only (No remote)
+
+31. Name: mapp
+   Path: C:/xampp/htdocs/mapp
+   Server: Static / Script / Document
+   GitHub: Local only (No remote)
+
+32. Name: name-your-price
+   Path: C:/xampp/htdocs/name-your-price
+   Server: PHP / Apache (XAMPP http://localhost/...)
+   GitHub: Local only (No remote)
+
+33. Name: organic-new
+   Path: C:/xampp/htdocs/organic-new
+   Server: PHP / Apache (XAMPP http://localhost/...)
+   GitHub: Local only (No remote)
+
+34. Name: organic-server
+   Path: C:/xampp/htdocs/organic-server
+   Server: PHP / Apache (XAMPP http://localhost/...)
+   GitHub: Local only (No remote)
+
+35. Name: organicnutrition
+   Path: C:/xampp/htdocs/organicnutrition
+   Server: PHP / Apache (XAMPP http://localhost/...)
+   GitHub: Local only (No remote)
+
+36. Name: organics
+   Path: C:/xampp/htdocs/organics
+   Server: PHP / Apache (XAMPP http://localhost/...)
+   GitHub: Local only (No remote)
+
+37. Name: parlour
+   Path: C:/xampp/htdocs/parlour
+   Server: Static / Script / Document
+   GitHub: Local only (No remote)
+
+38. Name: php-test
+   Path: C:/xampp/htdocs/php-test
+   Server: PHP / Apache (XAMPP http://localhost/...)
+   GitHub: Local only (No remote)
+
+39. Name: phptest
+   Path: C:/xampp/htdocs/phptest
+   Server: PHP / Apache (XAMPP http://localhost/...)
+   GitHub: Local only (No remote)
+
+40. Name: pippuri
+   Path: C:/xampp/htdocs/pippuri
+   Server: PHP / Apache (XAMPP http://localhost/...)
+   GitHub: https://github.com/hudacse6/ravintola-pippuri.git
+
+41. Name: pippuri-old
+   Path: C:/xampp/htdocs/pippuri-old
+   Server: PHP / Apache (XAMPP http://localhost/...)
+   GitHub: Local only (No remote)
+
+42. Name: rahimvai
+   Path: C:/xampp/htdocs/rahimvai
+   Server: PHP / Apache (XAMPP http://localhost/...)
+   GitHub: Local only (No remote)
+
+43. Name: ricemill
+   Path: C:/xampp/htdocs/ricemill
+   Server: PHP / Apache (XAMPP http://localhost/...)
+   GitHub: Local only (No remote)
+
+44. Name: rishitamart
+   Path: C:/xampp/htdocs/rishitamart
+   Server: PHP / Apache (XAMPP http://localhost/...)
+   GitHub: Local only (No remote)
+
+45. Name: saloon
+   Path: C:/xampp/htdocs/saloon
+   Server: Static / Script / Document
+   GitHub: Local only (No remote)
+
+46. Name: sharparchive
+   Path: C:/xampp/htdocs/sharparchive
+   Server: PHP / Apache (XAMPP http://localhost/...)
+   GitHub: https://github.com/SharpArchiveLLC/www.sharparchive.com.git
+
+47. Name: sharparchive-blog
+   Path: C:/xampp/htdocs/sharparchive-blog
+   Server: PHP / Apache (XAMPP http://localhost/...)
+   GitHub: Local only (No remote)
+
+48. Name: sharparchive-help
+   Path: C:/xampp/htdocs/sharparchive-help
+   Server: PHP / Apache (XAMPP http://localhost/...), Python
+   GitHub: Local only (No remote)
+
+49. Name: sharparchiveserver
+   Path: C:/xampp/htdocs/sharparchiveserver
+   Server: PHP / Apache (XAMPP http://localhost/...)
+   GitHub: Local only (No remote)
+
+50. Name: shoefactory
+   Path: C:/xampp/htdocs/shoefactory
+   Server: Static / Script / Document
+   GitHub: Local only (No remote)
+
+51. Name: sms
+   Path: C:/xampp/htdocs/sms
+   Server: PHP / Apache (XAMPP http://localhost/...)
+   GitHub: Local only (No remote)
+
+52. Name: socialpost
+   Path: C:/xampp/htdocs/socialpost
+   Server: PHP / Apache (XAMPP http://localhost/...)
+   GitHub: Local only (No remote)
+
+53. Name: solargy
+   Path: C:/xampp/htdocs/solargy
+   Server: PHP / Apache (XAMPP http://localhost/...)
+   GitHub: Local only (No remote)
+
+54. Name: songsar
+   Path: C:/xampp/htdocs/songsar
+   Server: Static / Script / Document
+   GitHub: Local only (No remote)
+
+55. Name: surveyhub
+   Path: C:/xampp/htdocs/surveyhub
+   Server: Laravel / PHP (Apache or php artisan serve), Vite / React (Node: npm run dev)
+   GitHub: Local only (No remote)
+
+56. Name: techpos
+   Path: C:/xampp/htdocs/techpos
+   Server: PHP / Apache (XAMPP http://localhost/...)
+   GitHub: Local only (No remote)
+
+57. Name: tohobill
+   Path: C:/xampp/htdocs/tohobill
+   Server: PHP / Apache (XAMPP http://localhost/...)
+   GitHub: Local only (No remote)
+
+58. Name: tripdust_1
+   Path: C:/xampp/htdocs/tripdust_1
+   Server: Static / Script / Document
+   GitHub: Local only (No remote)
+
+59. Name: trucklagbe
+   Path: C:/xampp/htdocs/trucklagbe
+   Server: PHP / Apache (XAMPP http://localhost/...)
+   GitHub: Local only (No remote)
+
+60. Name: trucklagbe2
+   Path: C:/xampp/htdocs/trucklagbe2
+   Server: PHP / Apache (XAMPP http://localhost/...)
+   GitHub: Local only (No remote)
+
+61. Name: webalizer
+   Path: C:/xampp/htdocs/webalizer
+   Server: Static / Script / Document
+   GitHub: Local only (No remote)
+
+62. Name: wedevsplugin
+   Path: C:/xampp/htdocs/wedevsplugin
+   Server: PHP / Apache (XAMPP http://localhost/...)
+   GitHub: Local only (No remote)
+
+63. Name: wordpress-6.9.4
+   Path: C:/xampp/htdocs/wordpress-6.9.4
+   Server: Static / Script / Document
+   GitHub: Local only (No remote)
+
+64. Name: xampp
+   Path: C:/xampp/htdocs/xampp
+   Server: Static / Script / Document
+   GitHub: Local only (No remote)
+

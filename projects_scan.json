@@ -1,0 +1,501 @@
+{
+  "f_projects": [
+    {
+      "name": "accounting",
+      "path": "F:\\antigravity\\accounting",
+      "remote": ""
+    },
+    {
+      "name": "agent",
+      "path": "F:\\antigravity\\agent",
+      "remote": ""
+    },
+    {
+      "name": "aluminai",
+      "path": "F:\\antigravity\\aluminai",
+      "remote": "https://github.com/parvez301901/aluminai-directory-app.git"
+    },
+    {
+      "name": "bizassistant",
+      "path": "F:\\antigravity\\bizassistant",
+      "remote": ""
+    },
+    {
+      "name": "bizdental",
+      "path": "F:\\antigravity\\bizdental",
+      "remote": ""
+    },
+    {
+      "name": "biznessimpact-design",
+      "path": "F:\\antigravity\\biznessimpact-design",
+      "remote": ""
+    },
+    {
+      "name": "bizproject",
+      "path": "F:\\antigravity\\bizproject",
+      "remote": ""
+    },
+    {
+      "name": "businessimpact",
+      "path": "F:\\antigravity\\businessimpact",
+      "remote": ""
+    },
+    {
+      "name": "chrome-extensions",
+      "path": "F:\\antigravity\\chrome-extensions",
+      "remote": ""
+    },
+    {
+      "name": "crm",
+      "path": "F:\\antigravity\\crm",
+      "remote": ""
+    },
+    {
+      "name": "game",
+      "path": "F:\\antigravity\\game",
+      "remote": ""
+    },
+    {
+      "name": "hallmark-test",
+      "path": "F:\\antigravity\\hallmark-test",
+      "remote": ""
+    },
+    {
+      "name": "infographicsfactory",
+      "path": "F:\\antigravity\\infographicsfactory",
+      "remote": ""
+    },
+    {
+      "name": "irishhelp",
+      "path": "F:\\antigravity\\irishhelp",
+      "remote": ""
+    },
+    {
+      "name": "lajobs",
+      "path": "F:\\antigravity\\lajobs",
+      "remote": ""
+    },
+    {
+      "name": "leadsconnect",
+      "path": "F:\\antigravity\\leadsconnect",
+      "remote": ""
+    },
+    {
+      "name": "linkbook",
+      "path": "F:\\antigravity\\linkbook",
+      "remote": ""
+    },
+    {
+      "name": "marketing-doc",
+      "path": "F:\\antigravity\\marketing-doc",
+      "remote": ""
+    },
+    {
+      "name": "marketingtools",
+      "path": "F:\\antigravity\\marketingtools",
+      "remote": ""
+    },
+    {
+      "name": "mobile-apps",
+      "path": "F:\\antigravity\\mobile-apps",
+      "remote": ""
+    },
+    {
+      "name": "nextgenerationlearning",
+      "path": "F:\\antigravity\\nextgenerationlearning",
+      "remote": ""
+    },
+    {
+      "name": "ostad",
+      "path": "F:\\antigravity\\ostad",
+      "remote": ""
+    },
+    {
+      "name": "paperbook",
+      "path": "F:\\antigravity\\paperbook",
+      "remote": ""
+    },
+    {
+      "name": "pdf",
+      "path": "F:\\antigravity\\pdf",
+      "remote": ""
+    },
+    {
+      "name": "postextractor",
+      "path": "F:\\antigravity\\postextractor",
+      "remote": ""
+    },
+    {
+      "name": "questions",
+      "path": "F:\\antigravity\\questions",
+      "remote": ""
+    },
+    {
+      "name": "recipesjack",
+      "path": "F:\\antigravity\\recipesjack",
+      "remote": ""
+    },
+    {
+      "name": "riyadh",
+      "path": "F:\\antigravity\\riyadh",
+      "remote": ""
+    },
+    {
+      "name": "riyadh-2",
+      "path": "F:\\antigravity\\riyadh-2",
+      "remote": ""
+    },
+    {
+      "name": "soapcommunity",
+      "path": "F:\\antigravity\\soapcommunity",
+      "remote": ""
+    },
+    {
+      "name": "songshare",
+      "path": "F:\\antigravity\\songshare",
+      "remote": ""
+    },
+    {
+      "name": "studentconsultancy",
+      "path": "F:\\antigravity\\studentconsultancy",
+      "remote": ""
+    },
+    {
+      "name": "sumonvai",
+      "path": "F:\\antigravity\\sumonvai",
+      "remote": ""
+    },
+    {
+      "name": "tailwind",
+      "path": "F:\\antigravity\\tailwind",
+      "remote": ""
+    },
+    {
+      "name": "whatsappgenie",
+      "path": "F:\\antigravity\\whatsappgenie",
+      "remote": ""
+    }
+  ],
+  "c_projects": [
+    {
+      "name": "ai-consultant-kyc",
+      "path": "C:\\xampp\\htdocs\\ai-consultant-kyc",
+      "remote": ""
+    },
+    {
+      "name": "anysilicon",
+      "path": "C:\\xampp\\htdocs\\anysilicon",
+      "remote": ""
+    },
+    {
+      "name": "backend",
+      "path": "C:\\xampp\\htdocs\\backend",
+      "remote": ""
+    },
+    {
+      "name": "backendgit",
+      "path": "C:\\xampp\\htdocs\\backendgit",
+      "remote": ""
+    },
+    {
+      "name": "bakerytally",
+      "path": "C:\\xampp\\htdocs\\bakerytally",
+      "remote": ""
+    },
+    {
+      "name": "bikerepairshop",
+      "path": "C:\\xampp\\htdocs\\bikerepairshop",
+      "remote": ""
+    },
+    {
+      "name": "biz-impact-claude",
+      "path": "C:\\xampp\\htdocs\\biz-impact-claude",
+      "remote": ""
+    },
+    {
+      "name": "biz-impact-final-2",
+      "path": "C:\\xampp\\htdocs\\biz-impact-final-2",
+      "remote": ""
+    },
+    {
+      "name": "bizcommerz",
+      "path": "C:\\xampp\\htdocs\\bizcommerz",
+      "remote": ""
+    },
+    {
+      "name": "biznessimpact",
+      "path": "C:\\xampp\\htdocs\\biznessimpact",
+      "remote": ""
+    },
+    {
+      "name": "brickscraft",
+      "path": "C:\\xampp\\htdocs\\brickscraft",
+      "remote": ""
+    },
+    {
+      "name": "businessautomata",
+      "path": "C:\\xampp\\htdocs\\businessautomata",
+      "remote": ""
+    },
+    {
+      "name": "catalogengine",
+      "path": "C:\\xampp\\htdocs\\catalogengine",
+      "remote": ""
+    },
+    {
+      "name": "cityhelp",
+      "path": "C:\\xampp\\htdocs\\cityhelp",
+      "remote": ""
+    },
+    {
+      "name": "classplus",
+      "path": "C:\\xampp\\htdocs\\classplus",
+      "remote": ""
+    },
+    {
+      "name": "clientsupport",
+      "path": "C:\\xampp\\htdocs\\clientsupport",
+      "remote": ""
+    },
+    {
+      "name": "dashboard",
+      "path": "C:\\xampp\\htdocs\\dashboard",
+      "remote": ""
+    },
+    {
+      "name": "devxhub-blog",
+      "path": "C:\\xampp\\htdocs\\devxhub-blog",
+      "remote": ""
+    },
+    {
+      "name": "elderland",
+      "path": "C:\\xampp\\htdocs\\elderland",
+      "remote": ""
+    },
+    {
+      "name": "elementortest",
+      "path": "C:\\xampp\\htdocs\\elementortest",
+      "remote": ""
+    },
+    {
+      "name": "fastfactory",
+      "path": "C:\\xampp\\htdocs\\fastfactory",
+      "remote": ""
+    },
+    {
+      "name": "flatowners",
+      "path": "C:\\xampp\\htdocs\\flatowners",
+      "remote": "https://github.com/parvez301901/flatowners.git"
+    },
+    {
+      "name": "foodrino",
+      "path": "C:\\xampp\\htdocs\\foodrino",
+      "remote": ""
+    },
+    {
+      "name": "gemini-test",
+      "path": "C:\\xampp\\htdocs\\gemini-test",
+      "remote": ""
+    },
+    {
+      "name": "hardwarebee",
+      "path": "C:\\xampp\\htdocs\\hardwarebee",
+      "remote": ""
+    },
+    {
+      "name": "homeparktheme",
+      "path": "C:\\xampp\\htdocs\\homeparktheme",
+      "remote": ""
+    },
+    {
+      "name": "img",
+      "path": "C:\\xampp\\htdocs\\img",
+      "remote": ""
+    },
+    {
+      "name": "journal",
+      "path": "C:\\xampp\\htdocs\\journal",
+      "remote": ""
+    },
+    {
+      "name": "kandyvape",
+      "path": "C:\\xampp\\htdocs\\kandyvape",
+      "remote": ""
+    },
+    {
+      "name": "mapp",
+      "path": "C:\\xampp\\htdocs\\mapp",
+      "remote": ""
+    },
+    {
+      "name": "name-your-price",
+      "path": "C:\\xampp\\htdocs\\name-your-price",
+      "remote": ""
+    },
+    {
+      "name": "New folder",
+      "path": "C:\\xampp\\htdocs\\New folder",
+      "remote": ""
+    },
+    {
+      "name": "organic-new",
+      "path": "C:\\xampp\\htdocs\\organic-new",
+      "remote": ""
+    },
+    {
+      "name": "organic-server",
+      "path": "C:\\xampp\\htdocs\\organic-server",
+      "remote": ""
+    },
+    {
+      "name": "organicnutrition",
+      "path": "C:\\xampp\\htdocs\\organicnutrition",
+      "remote": ""
+    },
+    {
+      "name": "organics",
+      "path": "C:\\xampp\\htdocs\\organics",
+      "remote": ""
+    },
+    {
+      "name": "parlour",
+      "path": "C:\\xampp\\htdocs\\parlour",
+      "remote": ""
+    },
+    {
+      "name": "php-test",
+      "path": "C:\\xampp\\htdocs\\php-test",
+      "remote": ""
+    },
+    {
+      "name": "phptest",
+      "path": "C:\\xampp\\htdocs\\phptest",
+      "remote": ""
+    },
+    {
+      "name": "pippuri",
+      "path": "C:\\xampp\\htdocs\\pippuri",
+      "remote": "https://github.com/hudacse6/ravintola-pippuri.git"
+    },
+    {
+      "name": "pippuri-old",
+      "path": "C:\\xampp\\htdocs\\pippuri-old",
+      "remote": ""
+    },
+    {
+      "name": "rahimvai",
+      "path": "C:\\xampp\\htdocs\\rahimvai",
+      "remote": ""
+    },
+    {
+      "name": "ricemill",
+      "path": "C:\\xampp\\htdocs\\ricemill",
+      "remote": ""
+    },
+    {
+      "name": "rishitamart",
+      "path": "C:\\xampp\\htdocs\\rishitamart",
+      "remote": ""
+    },
+    {
+      "name": "saloon",
+      "path": "C:\\xampp\\htdocs\\saloon",
+      "remote": ""
+    },
+    {
+      "name": "sharparchive",
+      "path": "C:\\xampp\\htdocs\\sharparchive",
+      "remote": "https://github.com/SharpArchiveLLC/www.sharparchive.com.git"
+    },
+    {
+      "name": "sharparchive-blog",
+      "path": "C:\\xampp\\htdocs\\sharparchive-blog",
+      "remote": ""
+    },
+    {
+      "name": "sharparchive-help",
+      "path": "C:\\xampp\\htdocs\\sharparchive-help",
+      "remote": ""
+    },
+    {
+      "name": "sharparchiveserver",
+      "path": "C:\\xampp\\htdocs\\sharparchiveserver",
+      "remote": ""
+    },
+    {
+      "name": "shoefactory",
+      "path": "C:\\xampp\\htdocs\\shoefactory",
+      "remote": ""
+    },
+    {
+      "name": "sms",
+      "path": "C:\\xampp\\htdocs\\sms",
+      "remote": ""
+    },
+    {
+      "name": "socialpost",
+      "path": "C:\\xampp\\htdocs\\socialpost",
+      "remote": ""
+    },
+    {
+      "name": "solargy",
+      "path": "C:\\xampp\\htdocs\\solargy",
+      "remote": ""
+    },
+    {
+      "name": "songsar",
+      "path": "C:\\xampp\\htdocs\\songsar",
+      "remote": ""
+    },
+    {
+      "name": "surveyhub",
+      "path": "C:\\xampp\\htdocs\\surveyhub",
+      "remote": ""
+    },
+    {
+      "name": "techpos",
+      "path": "C:\\xampp\\htdocs\\techpos",
+      "remote": ""
+    },
+    {
+      "name": "tohobill",
+      "path": "C:\\xampp\\htdocs\\tohobill",
+      "remote": ""
+    },
+    {
+      "name": "tripdust_1",
+      "path": "C:\\xampp\\htdocs\\tripdust_1",
+      "remote": ""
+    },
+    {
+      "name": "trucklagbe",
+      "path": "C:\\xampp\\htdocs\\trucklagbe",
+      "remote": ""
+    },
+    {
+      "name": "trucklagbe2",
+      "path": "C:\\xampp\\htdocs\\trucklagbe2",
+      "remote": ""
+    },
+    {
+      "name": "webalizer",
+      "path": "C:\\xampp\\htdocs\\webalizer",
+      "remote": ""
+    },
+    {
+      "name": "wedevsplugin",
+      "path": "C:\\xampp\\htdocs\\wedevsplugin",
+      "remote": ""
+    },
+    {
+      "name": "wordpress-6.9.4",
+      "path": "C:\\xampp\\htdocs\\wordpress-6.9.4",
+      "remote": ""
+    },
+    {
+      "name": "xampp",
+      "path": "C:\\xampp\\htdocs\\xampp",
+      "remote": ""
+    }
+  ]
+}
