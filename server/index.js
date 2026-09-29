@@ -876,13 +876,15 @@ app.get('/api/projects', async (req, res) => {
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
+    const dateNowExpr = getDbType() === 'postgres' ? "TO_CHAR(CURRENT_DATE, 'YYYY-MM-DD')" : "date('now')";
+
     const projects = await query(`
       SELECT p.*,
         (SELECT count(*) FROM boards b JOIN tasks t ON t.board_id = b.id WHERE b.project_id = p.id) as task_count,
         (SELECT count(*) FROM boards b JOIN tasks t ON t.board_id = b.id WHERE b.project_id = p.id AND t.status = 'Done') as completed_task_count,
         (SELECT count(*) FROM boards b JOIN tasks t ON t.board_id = b.id WHERE b.project_id = p.id AND t.status = 'In Progress') as in_progress_task_count,
         (SELECT count(*) FROM boards b JOIN tasks t ON t.board_id = b.id WHERE b.project_id = p.id AND (t.status = 'Blocked' OR t.priority = 'Urgent')) as blocked_task_count,
-        (SELECT count(*) FROM boards b JOIN tasks t ON t.board_id = b.id WHERE b.project_id = p.id AND t.status != 'Done' AND t.due_date IS NOT NULL AND t.due_date < date('now')) as overdue_task_count,
+        (SELECT count(*) FROM boards b JOIN tasks t ON t.board_id = b.id WHERE b.project_id = p.id AND t.status != 'Done' AND t.due_date IS NOT NULL AND t.due_date < ${dateNowExpr}) as overdue_task_count,
         (SELECT COALESCE(sum(t.actual_hours), 0) FROM boards b JOIN tasks t ON t.board_id = b.id WHERE b.project_id = p.id) as total_logged_hours
       FROM projects p
       ${whereClause}
@@ -895,7 +897,7 @@ app.get('/api/projects', async (req, res) => {
         SELECT t.id, t.title, t.status, t.priority, t.due_date
         FROM boards b
         JOIN tasks t ON t.board_id = b.id
-        WHERE b.project_id = ? AND (t.status = 'Blocked' OR t.priority = 'Urgent' OR (t.status != 'Done' AND t.due_date IS NOT NULL AND t.due_date < date('now')))
+        WHERE b.project_id = ? AND (t.status = 'Blocked' OR t.priority = 'Urgent' OR (t.status != 'Done' AND t.due_date IS NOT NULL AND t.due_date < ${dateNowExpr}))
         ORDER BY CASE WHEN t.status = 'Blocked' THEN 1 WHEN t.priority = 'Urgent' THEN 2 ELSE 3 END
         LIMIT 5
       `, [proj.id]);
@@ -1289,11 +1291,12 @@ app.get('/api/projects/:id', async (req, res) => {
 
     const stats = taskStats[0] || { total_tasks: 0, completed_tasks: 0, in_progress_tasks: 0, issue_tasks: 0, total_hours: 0 };
 
+    const dateNowExpr = getDbType() === 'postgres' ? "TO_CHAR(CURRENT_DATE, 'YYYY-MM-DD')" : "date('now')";
     const topIssues = await query(`
       SELECT t.id, t.title, t.status, t.priority, t.due_date
       FROM tasks t
       JOIN boards b ON t.board_id = b.id
-      WHERE b.project_id = ? AND (t.status = 'Blocked' OR t.priority = 'Urgent' OR (t.status != 'Done' AND t.due_date IS NOT NULL AND t.due_date < date('now')))
+      WHERE b.project_id = ? AND (t.status = 'Blocked' OR t.priority = 'Urgent' OR (t.status != 'Done' AND t.due_date IS NOT NULL AND t.due_date < ${dateNowExpr}))
       ORDER BY CASE WHEN t.status = 'Blocked' THEN 1 WHEN t.priority = 'Urgent' THEN 2 ELSE 3 END
       LIMIT 5
     `, [project.id]);
