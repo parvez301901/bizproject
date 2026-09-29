@@ -50,20 +50,44 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('project'); // 'dashboard', 'onboarding', 'team', 'messages', 'videos', 'reports', 'deactivated', 'project', 'logs'
   const [projectViewMode, setProjectViewMode] = useState('table'); // 'table', 'kanban'
   
-  // Auth state
+  // Auth state - Require real authentication
   const [currentUser, setCurrentUser] = useState(() => {
     const saved = localStorage.getItem('apex_user');
-    return saved ? JSON.parse(saved) : {
-      id: 'usr_admin',
-      full_name: 'Alex Morgan',
-      email: 'alex.morgan@company.com',
-      avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100',
-      role: 'admin',
-      auth_provider: 'local'
-    };
+    const token = localStorage.getItem('apex_token');
+    if (saved && token) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        return null;
+      }
+    }
+    return null;
   });
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Validate session on mount
+  useEffect(() => {
+    const verifySession = async () => {
+      const token = localStorage.getItem('apex_token');
+      if (!token) {
+        setCurrentUser(null);
+        return;
+      }
+      try {
+        const res = await api.getMe(token);
+        if (res && res.user) {
+          setCurrentUser(res.user);
+          localStorage.setItem('apex_user', JSON.stringify(res.user));
+        } else {
+          setCurrentUser(null);
+        }
+      } catch (e) {
+        console.warn('Session verification error:', e);
+      }
+    };
+    verifySession();
+  }, []);
 
   // Data states
   const [stats, setStats] = useState(null);
@@ -149,6 +173,7 @@ export default function App() {
     setCurrentUser(user);
     localStorage.setItem('apex_user', JSON.stringify(user));
     if (token) localStorage.setItem('apex_token', token);
+    setShowAuthModal(false);
     loadInitialData();
   };
 
@@ -691,9 +716,12 @@ export default function App() {
       )}
 
       {/* Authentication Modal */}
-      {showAuthModal && (
+      {(!currentUser || showAuthModal) && (
         <AuthModal
-          onClose={() => setShowAuthModal(false)}
+          isRequired={!currentUser}
+          onClose={() => {
+            if (currentUser) setShowAuthModal(false);
+          }}
           onAuthSuccess={handleAuthSuccess}
         />
       )}

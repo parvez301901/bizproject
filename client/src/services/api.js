@@ -24,6 +24,20 @@ export const api = {
     return json;
   },
 
+  async getMe(token) {
+    const t = token || localStorage.getItem('apex_token');
+    if (!t) return null;
+    const res = await fetch(`${API_BASE}/auth/me`, {
+      headers: { 'Authorization': `Bearer ${t}` }
+    });
+    if (!res.ok) {
+      localStorage.removeItem('apex_token');
+      localStorage.removeItem('apex_user');
+      return null;
+    }
+    return res.json();
+  },
+
   async socialAuth(data) {
     const res = await fetch(`${API_BASE}/auth/social`, {
       method: 'POST',

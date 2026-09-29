@@ -8,7 +8,9 @@ import {
   Sparkles, 
   CheckCircle2, 
   ShieldCheck,
-  Briefcase
+  Briefcase,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { api } from '../services/api';
 
@@ -56,10 +58,11 @@ function LinkedInIcon() {
   );
 }
 
-export default function AuthModal({ onClose, onAuthSuccess }) {
+export default function AuthModal({ onClose, onAuthSuccess, isRequired = false }) {
   const [mode, setMode] = useState('login'); // 'login' or 'register'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [fullName, setFullName] = useState('');
   const [department, setDepartment] = useState('Engineering');
   const [designation, setDesignation] = useState('Software Engineer');
@@ -69,13 +72,19 @@ export default function AuthModal({ onClose, onAuthSuccess }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    
+    if (mode === 'register' && password.length < 6) {
+      setError('Password must be at least 6 characters long');
+      return;
+    }
+
     setLoading(true);
 
     try {
       if (mode === 'login') {
         const res = await api.login({ email, password });
         onAuthSuccess(res.user, res.token);
-        onClose();
+        if (onClose) onClose();
       } else {
         const res = await api.register({
           full_name: fullName,
@@ -85,7 +94,7 @@ export default function AuthModal({ onClose, onAuthSuccess }) {
           designation
         });
         onAuthSuccess(res.user, res.token);
-        onClose();
+        if (onClose) onClose();
       }
     } catch (err) {
       setError(err.message || 'Authentication failed');
@@ -110,7 +119,7 @@ export default function AuthModal({ onClose, onAuthSuccess }) {
 
       const res = await api.socialAuth(socialPayload);
       onAuthSuccess(res.user, res.token);
-      onClose();
+      if (onClose) onClose();
     } catch (err) {
       setError(err.message || `Failed to authenticate with ${providerName}`);
     } finally {
@@ -119,29 +128,31 @@ export default function AuthModal({ onClose, onAuthSuccess }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
+    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
       <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden animate-scaleUp">
         {/* Header */}
         <div className="p-6 bg-gradient-to-r from-emerald-50 via-teal-50/40 to-slate-50 border-b border-emerald-100/80 relative">
-          <button
-            onClick={onClose}
-            className="absolute top-5 right-5 p-1.5 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          {!isRequired && (
+            <button
+              onClick={onClose}
+              className="absolute top-5 right-5 p-1.5 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          )}
 
           <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-semibold mb-2">
             <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-            <span>ApexBoard Enterprise ID</span>
+            <span>ApexBoard Enterprise Security</span>
           </div>
 
           <h2 className="text-xl font-bold text-slate-900 tracking-tight">
-            {mode === 'login' ? 'Welcome back' : 'Create your account'}
+            {mode === 'login' ? 'Authentication Required' : 'Create Your Account'}
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">
             {mode === 'login'
-              ? 'Sign in to access your projects, tasks, and team'
-              : 'Join the workspace with instant onboarding'}
+              ? 'Please sign in with your credentials to access the workspace'
+              : 'Join the workspace with instant access'}
           </p>
 
           {/* Mode Switcher Tabs */}
@@ -274,13 +285,21 @@ export default function AuthModal({ onClose, onAuthSuccess }) {
               <div className="relative">
                 <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:bg-white"
+                  placeholder={mode === 'register' ? 'Minimum 6 characters' : '••••••••'}
+                  className="w-full pl-9 pr-10 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:bg-white"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 focus:outline-none cursor-pointer"
+                  title={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </div>
             </div>
 

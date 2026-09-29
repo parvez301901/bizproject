@@ -17,7 +17,7 @@ async function seedData() {
       {
         id: 'usr_admin',
         email: 'alex.morgan@company.com',
-        password_hash: '$2a$10$wT37tP1dKjEw4n6K8/31I.gZgY5l5qR7M0x.f3lWf0cWvLp9a56q2', // admin123
+        password_hash: '$2b$10$l1CEsvu.L0XSvBDNKAWGiOzigN5.6UTSMALau9SkbBT4ludni40TC', // Admin@12345
         full_name: 'Alex Morgan',
         avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
         role: 'admin',

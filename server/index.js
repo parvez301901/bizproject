@@ -160,12 +160,42 @@ app.get('/api/health', (req, res) => {
 });
 
 // --- 2. AUTHENTICATION & SOCIAL LOGINS ---
+// Verify current session token / get current user
+app.get('/api/auth/me', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'No authorization token provided' });
+    }
+    const token = authHeader.split(' ')[1];
+    let decoded;
+    try {
+      decoded = jwt.verify(token, JWT_SECRET);
+    } catch (e) {
+      return res.status(401).json({ error: 'Session expired or invalid token' });
+    }
+
+    const user = await getOne('SELECT id, email, full_name, avatar_url, role, department, designation, auth_provider, status, xp, level FROM users WHERE id = ?', [decoded.id]);
+    if (!user || user.status === 'deactivated') {
+      return res.status(401).json({ error: 'User account not active' });
+    }
+
+    res.json({ user });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Register with email & password
 app.post('/api/auth/register', async (req, res) => {
   try {
     const { full_name, email, password, department = 'Engineering', designation = 'Team Member' } = req.body;
     if (!full_name || !email || !password) {
       return res.status(400).json({ error: 'Full name, email, and password are required' });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters long' });
     }
 
     const existing = await getOne('SELECT * FROM users WHERE email = ?', [email.toLowerCase().trim()]);
@@ -196,7 +226,7 @@ app.post('/api/auth/register', async (req, res) => {
       details: `New account registered with email (${email})`
     });
 
-    const user = await getOne('SELECT id, email, full_name, avatar_url, role, department, designation, auth_provider, status FROM users WHERE id = ?', [userId]);
+    const user = await getOne('SELECT id, email, full_name, avatar_url, role, department, designation, auth_provider, status, xp, level FROM users WHERE id = ?', [userId]);
     res.status(201).json({ token, user });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -211,16 +241,18 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(400).json({ error: 'Email and password are required' });
     }
 
-    const user = await getOne('SELECT * FROM users WHERE email = ?', [email.toLowerCase().trim()]);
+    const user = await getOne('SELECT * FROM users WHERE LOWER(TRIM(email)) = ?', [email.toLowerCase().trim()]);
     if (!user) {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
 
-    if (user.password_hash) {
-      const match = await bcrypt.compare(password, user.password_hash);
-      if (!match) {
-        return res.status(401).json({ error: 'Invalid email or password' });
-      }
+    if (!user.password_hash) {
+      return res.status(401).json({ error: 'This account was created with social login. Please sign in using your social provider or reset password.' });
+    }
+
+    const match = await bcrypt.compare(password, user.password_hash);
+    if (!match) {
+      return res.status(401).json({ error: 'Invalid email or password' });
     }
 
     const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
@@ -244,7 +276,9 @@ app.post('/api/auth/login', async (req, res) => {
       department: user.department,
       designation: user.designation,
       auth_provider: user.auth_provider || 'local',
-      status: user.status
+      status: user.status,
+      xp: user.xp || 0,
+      level: user.level || 1
     };
 
     res.json({ token, user: safeUser });
