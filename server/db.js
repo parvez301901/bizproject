@@ -488,7 +488,9 @@ async function setupPostgresSchema() {
 async function query(sql, params = []) {
   if (dbType === 'postgres' && pgPool) {
     // Convert ? to $1, $2, etc for postgres if needed
-    let pSql = sql;
+    let pSql = sql
+      .replace(/date\('now'\)/gi, 'CURRENT_DATE')
+      .replace(/datetime\('now'\)/gi, 'CURRENT_TIMESTAMP');
     let pIdx = 1;
     while (pSql.includes('?')) {
       pSql = pSql.replace('?', `$${pIdx++}`);
