@@ -31,3 +31,14 @@ npm run deploy
 - **Netlify Auth Token**: `nfp_f7at6jtVf5emkPUa8WXv8VkxsvqgGMsa5b3e`
 - **Neon PostgreSQL**: `postgresql://neondb_owner:npg_sALSrY4bq8Fl@ep-tiny-base-b43gm6rl-pooler.c-6.us-east-2.aws.neon.tech/neondb?sslmode=require`
 - **Git Repo**: `https://github.com/parvez301901/bizproject`
+
+---
+
+## Project Map (AI Coding Token Optimizer)
+Before opening files, read the router for the task first, then only the files it links:
+- [docs/map/PRODUCT.md](docs/map/PRODUCT.md): Where the code for each area lives (server, client, components)
+- [docs/map/OPERATIONS.md](docs/map/OPERATIONS.md): Build, local dev, deploy, live verification, DB sync
+- [docs/map/DOCS.md](docs/map/DOCS.md): Reference guides, inventories, and deployment specifications
+
+**Keep the map true.** A change that adds, moves or removes a file a router names updates that router in the same change. Reference material belongs in `docs/`, not in this entry point.
+

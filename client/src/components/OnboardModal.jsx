@@ -39,6 +39,8 @@ export default function OnboardModal({ onClose, onCreated }) {
   const { t } = useLanguage();
   // Stepper: 1 = Personal Details, 2 = Role & Department, 3 = Skills & Equipment, 4 = Gamification & Confirmation
   const [step, setStep] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');

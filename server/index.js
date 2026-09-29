@@ -1542,6 +1542,172 @@ app.get('/api/projects/:id/pdf', async (req, res) => {
   }
 });
 
+// --- PROJECT SYNC & BULK REPLICATION (Local <-> Live Cloud) ---
+// 1. Export all projects & boards & tasks bundle for replication
+app.get('/api/projects/sync/export-bundle', async (req, res) => {
+  try {
+    const projects = await query('SELECT * FROM projects');
+    const boards = await query('SELECT * FROM boards');
+    const tasks = await query('SELECT * FROM tasks');
+    res.json({
+      timestamp: new Date().toISOString(),
+      sourceDb: getDbType(),
+      counts: { projects: projects.length, boards: boards.length, tasks: tasks.length },
+      projects,
+      boards,
+      tasks
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 2. Import / Upsert bulk projects bundle (can be triggered from local or remote)
+app.post('/api/projects/sync/import-bundle', async (req, res) => {
+  try {
+    const { projects = [], boards = [], tasks = [], actor_name = 'Sync Engine' } = req.body;
+    let projectsSynced = 0;
+    let boardsSynced = 0;
+    let tasksSynced = 0;
+
+    for (const p of projects) {
+      if (!p.id || !p.name) continue;
+      const existing = await getOne('SELECT id FROM projects WHERE id = ?', [p.id]);
+      if (existing) {
+        await query(`
+          UPDATE projects
+          SET name = ?, description = ?, color = ?, status = ?, priority = ?,
+              start_date = ?, due_date = ?, project_folder = ?, doc_markdown = ?, doc_pdf_path = ?,
+              progress_percent = ?, lifecycle_stage = ?, location_path = ?, github_repo = ?,
+              server_name = ?, is_restricted = ?, tech_stack = ?, frontend_tech = ?,
+              backend_tech = ?, database_tech = ?
+          WHERE id = ?
+        `, [
+          p.name, p.description || null, p.color || '#10b981', p.status || 'active', p.priority || 'Medium',
+          p.start_date || null, p.due_date || null, p.project_folder || null, p.doc_markdown || null, p.doc_pdf_path || null,
+          Number(p.progress_percent) || 0, p.lifecycle_stage || 'Development', p.location_path || null, p.github_repo || null,
+          p.server_name || null, p.is_restricted ? 1 : 0, p.tech_stack || null, p.frontend_tech || null,
+          p.backend_tech || null, p.database_tech || null, p.id
+        ]);
+      } else {
+        await query(`
+          INSERT INTO projects (
+            id, workspace_id, name, description, color, status, priority,
+            start_date, due_date, project_folder, doc_markdown, doc_pdf_path,
+            progress_percent, lifecycle_stage, location_path, github_repo,
+            server_name, is_restricted, tech_stack, frontend_tech, backend_tech, database_tech, created_by
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, [
+          p.id, p.workspace_id || 'ws_primary', p.name, p.description || null, p.color || '#10b981',
+          p.status || 'active', p.priority || 'Medium', p.start_date || null, p.due_date || null,
+          p.project_folder || null, p.doc_markdown || null, p.doc_pdf_path || null,
+          Number(p.progress_percent) || 0, p.lifecycle_stage || 'Development', p.location_path || null,
+          p.github_repo || null, p.server_name || null, p.is_restricted ? 1 : 0, p.tech_stack || null,
+          p.frontend_tech || null, p.backend_tech || null, p.database_tech || null, p.created_by || 'usr_admin'
+        ]);
+      }
+      projectsSynced++;
+    }
+
+    for (const b of boards) {
+      if (!b.id || !b.project_id) continue;
+      const existing = await getOne('SELECT id FROM boards WHERE id = ?', [b.id]);
+      if (!existing) {
+        await query('INSERT INTO boards (id, project_id, name) VALUES (?, ?, ?)', [b.id, b.project_id, b.name || 'Main Board']);
+        boardsSynced++;
+      }
+    }
+
+    for (const t of tasks) {
+      if (!t.id || !t.board_id) continue;
+      const existing = await getOne('SELECT id FROM tasks WHERE id = ?', [t.id]);
+      const assigneeIds = typeof t.assignee_ids === 'object' ? JSON.stringify(t.assignee_ids) : (t.assignee_ids || '[]');
+      const tags = typeof t.tags === 'object' ? JSON.stringify(t.tags) : (t.tags || '[]');
+      if (existing) {
+        await query(`
+          UPDATE tasks
+          SET title = ?, description = ?, status = ?, priority = ?,
+              estimated_hours = ?, actual_hours = ?, start_date = ?, due_date = ?
+          WHERE id = ?
+        `, [
+          t.title, t.description || null, t.status || 'To Do', t.priority || 'Medium',
+          Number(t.estimated_hours) || 0, Number(t.actual_hours) || 0, t.start_date || null, t.due_date || null, t.id
+        ]);
+      } else {
+        await query(`
+          INSERT INTO tasks (
+            id, board_id, parent_id, title, description, status, priority,
+            estimated_hours, actual_hours, start_date, due_date, order_index,
+            assignee_ids, tags, created_by
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, [
+          t.id, t.board_id, t.parent_id || null, t.title, t.description || null,
+          t.status || 'To Do', t.priority || 'Medium', Number(t.estimated_hours) || 0, Number(t.actual_hours) || 0,
+          t.start_date || null, t.due_date || null, Number(t.order_index) || 0,
+          assigneeIds, tags, t.created_by || 'usr_admin'
+        ]);
+      }
+      tasksSynced++;
+    }
+
+    await logActivity({
+      entity_type: 'system',
+      entity_id: 'sync_bundle',
+      user_name: actor_name,
+      action: 'PROJECTS_SYNCED',
+      details: `Synchronized ${projectsSynced} projects, ${boardsSynced} boards, and ${tasksSynced} tasks.`
+    });
+
+    res.json({
+      success: true,
+      message: `Successfully synchronized ${projectsSynced} projects, ${boardsSynced} boards, and ${tasksSynced} tasks.`,
+      counts: { projectsSynced, boardsSynced, tasksSynced }
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 3. Scan local disk for dev projects (F:\antigravity and C:\xampp\htdocs)
+app.get('/api/projects/scan/local-dirs', (req, res) => {
+  try {
+    const scanDir = (baseDir) => {
+      const results = [];
+      if (!fs.existsSync(baseDir)) return results;
+      try {
+        const items = fs.readdirSync(baseDir);
+        for (const item of items) {
+          if (item.startsWith('.')) continue;
+          const fullPath = path.join(baseDir, item);
+          try {
+            if (fs.statSync(fullPath).isDirectory()) {
+              const detected = detectTechStack(fullPath);
+              results.append ? null : results.push({
+                name: item,
+                path: fullPath.replace(/\\/g, '/'),
+                folder: item,
+                tech: detected
+              });
+            }
+          } catch(e) {}
+        }
+      } catch(e) {}
+      return results;
+    };
+
+    const fProjects = scanDir('F:/antigravity');
+    const cProjects = scanDir('C:/xampp/htdocs');
+
+    res.json({
+      f_antigravity: fProjects,
+      c_xampp_htdocs: cProjects,
+      totalDiscovered: fProjects.length + cProjects.length
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // --- 6. BOARDS & TASKS (MONDAY / CLICKUP STYLE) ---
 // Get full board with tasks & assignees
 app.get('/api/projects/:projectId/board', async (req, res) => {

@@ -34,10 +34,13 @@ import {
   RotateCcw,
   Database,
   Code2,
-  Cpu
+  Cpu,
+  FolderSync,
+  RefreshCw
 } from 'lucide-react';
 import { useLanguage } from '../LanguageContext';
 import DeleteProjectModal from './DeleteProjectModal';
+import ProjectSyncModal from './ProjectSyncModal';
 
 export default function ProjectsDirectoryView({
   projects = [],
@@ -51,6 +54,7 @@ export default function ProjectsDirectoryView({
 }) {
   const { t } = useLanguage();
   const [projectToDelete, setProjectToDelete] = useState(null);
+  const [showSyncModal, setShowSyncModal] = useState(false);
   const [viewMode, setViewMode] = useState('cards'); // 'cards' (default) | 'table'
   const [showInspector, setShowInspector] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -162,6 +166,15 @@ export default function ProjectsDirectoryView({
 
         {/* Action Controls */}
         <div className="flex flex-wrap items-center gap-3">
+          <button
+            onClick={() => setShowSyncModal(true)}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-800 font-semibold text-xs border border-slate-200 hover:border-emerald-200 transition-all cursor-pointer shadow-2xs"
+            title="Sync all projects between local disk and live server"
+          >
+            <FolderSync className="w-4 h-4 text-emerald-600" />
+            <span>Sync Live / Local</span>
+          </button>
+
           <button
             onClick={onOpenNewProject}
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shadow-sm shadow-emerald-600/20 transition-all cursor-pointer"
@@ -1178,6 +1191,17 @@ export default function ProjectsDirectoryView({
             if (onRefreshProjects) onRefreshProjects();
           }}
           currentUser={currentUser}
+        />
+      )}
+
+      {/* Project Sync & Cloud Replication Modal */}
+      {showSyncModal && (
+        <ProjectSyncModal
+          onClose={() => setShowSyncModal(false)}
+          onSyncComplete={() => {
+            if (onRefreshProjects) onRefreshProjects();
+          }}
+          totalProjects={projects.length}
         />
       )}
     </div>

@@ -232,6 +232,32 @@ export const api = {
     return res.json();
   },
 
+  // Project Sync & Replication (Local <-> Live Server)
+  async exportProjectsBundle(baseUrl) {
+    const targetUrl = (baseUrl ? baseUrl.replace(/\/$/, '') : API_BASE);
+    const res = await fetch(`${targetUrl}/projects/sync/export-bundle`);
+    if (!res.ok) throw new Error('Failed to export projects bundle');
+    return res.json();
+  },
+
+  async importProjectsBundle(bundleData, targetApiUrl) {
+    const targetUrl = (targetApiUrl ? targetApiUrl.replace(/\/$/, '') : API_BASE);
+    const res = await fetch(`${targetUrl}/projects/sync/import-bundle`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(bundleData)
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || 'Failed to import projects bundle');
+    return json;
+  },
+
+  async scanLocalProjects() {
+    const res = await fetch(`${API_BASE}/projects/scan/local-dirs`);
+    if (!res.ok) throw new Error('Local scanning not supported on this environment');
+    return res.json();
+  },
+
   async getProjectBoard(projectId) {
     const res = await fetch(`${API_BASE}/projects/${projectId}/board`);
     if (!res.ok) throw new Error('Failed to fetch project board');
