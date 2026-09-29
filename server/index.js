@@ -156,7 +156,7 @@ async function logActivity({ entity_type, entity_id, user_id, user_name, action,
 
 // --- 1. SYSTEM & HEALTH ---
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', db: getDbType(), timestamp: new Date().toISOString() });
+  res.json({ status: 'ok', db: getDbType(), version: 'v1.0.3-datesafe', timestamp: new Date().toISOString() });
 });
 
 // --- 2. AUTHENTICATION & SOCIAL LOGINS ---
