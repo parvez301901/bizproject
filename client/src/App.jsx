@@ -42,7 +42,6 @@ import ProjectsDirectoryView from './components/ProjectsDirectoryView';
 import LeaderboardView from './components/LeaderboardView';
 import MessageBoardView from './components/MessageBoardView';
 import InstructionVideosView from './components/InstructionVideosView';
-import RfidAttendanceView from './components/RfidAttendanceView';
 import ImportantNoticeModal from './components/ImportantNoticeModal';
 import { api } from './services/api';
 
@@ -587,13 +586,6 @@ export default function App() {
               users={activeUsers}
               projects={projects}
               onOpenLogWork={() => setShowLogWorkModal(true)}
-            />
-          )}
-
-          {activeTab === 'attendance' && (
-            <RfidAttendanceView
-              users={activeUsers}
-              currentUser={currentUser}
             />
           )}
 

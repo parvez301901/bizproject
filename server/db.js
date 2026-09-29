@@ -190,7 +190,6 @@ function setupSQLiteSchema() {
   try { sqliteDb.exec("ALTER TABLE projects ADD COLUMN backend_tech TEXT"); } catch(e) {}
   try { sqliteDb.exec("ALTER TABLE projects ADD COLUMN database_tech TEXT"); } catch(e) {}
   try { sqliteDb.exec("ALTER TABLE onboarding_tasks ADD COLUMN xp_reward INTEGER DEFAULT 35"); } catch(e) {}
-  try { sqliteDb.exec("ALTER TABLE users ADD COLUMN rfid_card TEXT"); } catch(e) {}
 
   sqliteDb.exec(`
     CREATE TABLE IF NOT EXISTS work_logs (
@@ -248,27 +247,6 @@ function setupSQLiteSchema() {
     CREATE INDEX IF NOT EXISTS idx_instruction_videos_uploader ON instruction_videos(uploader_id);
     CREATE INDEX IF NOT EXISTS idx_instruction_videos_audience ON instruction_videos(audience_type);
     CREATE INDEX IF NOT EXISTS idx_instruction_videos_created ON instruction_videos(created_at);
-
-    CREATE TABLE IF NOT EXISTS attendance_logs (
-      id TEXT PRIMARY KEY,
-      user_id TEXT,
-      rfid_card TEXT NOT NULL,
-      employee_name TEXT,
-      attendance_date TEXT NOT NULL, -- YYYY-MM-DD
-      check_in_time TEXT, -- HH:MM:SS or full timestamp
-      check_out_time TEXT, -- HH:MM:SS or full timestamp
-      total_hours REAL DEFAULT 0,
-      status TEXT DEFAULT 'Present', -- 'Present', 'Late', 'Half Day', 'Overtime', 'Absent'
-      terminal_id TEXT, -- Reader ID/Door ID e.g., 'RFID-MAIN-GATE'
-      raw_source TEXT, -- 'csv_import', 'excel_import', 'manual_scan'
-      import_batch_id TEXT,
-      created_at TEXT DEFAULT (datetime('now')),
-      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
-    );
-    CREATE INDEX IF NOT EXISTS idx_attendance_user ON attendance_logs(user_id);
-    CREATE INDEX IF NOT EXISTS idx_attendance_rfid ON attendance_logs(rfid_card);
-    CREATE INDEX IF NOT EXISTS idx_attendance_date ON attendance_logs(attendance_date);
-    CREATE INDEX IF NOT EXISTS idx_attendance_status ON attendance_logs(status);
   `);
 }
 
@@ -415,22 +393,6 @@ async function setupPostgresSchema() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
 
-      CREATE TABLE IF NOT EXISTS attendance_logs (
-        id VARCHAR(64) PRIMARY KEY,
-        user_id VARCHAR(64) REFERENCES users(id) ON DELETE SET NULL,
-        rfid_card VARCHAR(128) NOT NULL,
-        employee_name VARCHAR(255),
-        attendance_date VARCHAR(64) NOT NULL,
-        check_in_time VARCHAR(64),
-        check_out_time VARCHAR(64),
-        total_hours NUMERIC DEFAULT 0,
-        status VARCHAR(64) DEFAULT 'Present',
-        terminal_id VARCHAR(128),
-        raw_source VARCHAR(64),
-        import_batch_id VARCHAR(64),
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
-
       CREATE INDEX IF NOT EXISTS idx_tasks_board ON tasks(board_id);
       CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
       CREATE INDEX IF NOT EXISTS idx_tasks_priority ON tasks(priority);
@@ -440,9 +402,6 @@ async function setupPostgresSchema() {
       CREATE INDEX IF NOT EXISTS idx_messages_type ON messages(recipient_type);
       CREATE INDEX IF NOT EXISTS idx_instruction_videos_uploader ON instruction_videos(uploader_id);
       CREATE INDEX IF NOT EXISTS idx_instruction_videos_audience ON instruction_videos(audience_type);
-      CREATE INDEX IF NOT EXISTS idx_attendance_user ON attendance_logs(user_id);
-      CREATE INDEX IF NOT EXISTS idx_attendance_rfid ON attendance_logs(rfid_card);
-      CREATE INDEX IF NOT EXISTS idx_attendance_date ON attendance_logs(attendance_date);
     `);
 
     // Safe dynamic column additions for PostgreSQL
@@ -452,7 +411,6 @@ async function setupPostgresSchema() {
       "ALTER TABLE activity_logs ADD COLUMN IF NOT EXISTS user_name VARCHAR(128)",
       "ALTER TABLE users ADD COLUMN IF NOT EXISTS xp INTEGER DEFAULT 0",
       "ALTER TABLE users ADD COLUMN IF NOT EXISTS level INTEGER DEFAULT 1",
-      "ALTER TABLE users ADD COLUMN IF NOT EXISTS rfid_card VARCHAR(128)",
       "ALTER TABLE tasks ADD COLUMN IF NOT EXISTS xp_reward INTEGER DEFAULT 50",
       "ALTER TABLE tasks ADD COLUMN IF NOT EXISTS completed_at VARCHAR(64)",
       "ALTER TABLE tasks ADD COLUMN IF NOT EXISTS qc_issues TEXT",

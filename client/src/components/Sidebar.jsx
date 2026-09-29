@@ -23,7 +23,6 @@ import {
   Trophy,
   Megaphone,
   Video,
-  CreditCard,
   X
 } from 'lucide-react';
 import { useLanguage } from '../LanguageContext';
@@ -218,24 +217,6 @@ export default function Sidebar({
               </div>
               <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800">
                 Live
-              </span>
-            </button>
-
-            {/* RFID Attendance Menu */}
-            <button
-              onClick={() => handleNav(() => setActiveTab('attendance'))}
-              className={`w-full flex items-center justify-between px-3 py-2 text-sm font-medium rounded-lg transition-all cursor-pointer ${
-                activeTab === 'attendance'
-                  ? 'bg-emerald-50 text-emerald-700 shadow-sm shadow-emerald-600/5 font-semibold'
-                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <CreditCard className={`w-4 h-4 ${activeTab === 'attendance' ? 'text-emerald-600' : 'text-slate-400'}`} />
-                <span>{t('sidebar.attendance') || 'RFID Attendance'}</span>
-              </div>
-              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800">
-                RFID
               </span>
             </button>
 
