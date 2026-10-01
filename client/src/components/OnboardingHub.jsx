@@ -46,6 +46,15 @@ export default function OnboardingHub({ users = [], onRefresh, onOpenOnboardModa
   const [searchQuery, setSearchQuery] = useState('');
   const [showPhotoModal, setShowPhotoModal] = useState(false);
 
+  // Edit Candidate Profile Modal State
+  const [showEditProfileModal, setShowEditProfileModal] = useState(false);
+  const [editProfileName, setEditProfileName] = useState('');
+  const [editProfileDesignation, setEditProfileDesignation] = useState('');
+  const [editProfileDepartment, setEditProfileDepartment] = useState('');
+  const [editProfilePhone, setEditProfilePhone] = useState('');
+  const [editProfileLocation, setEditProfileLocation] = useState('');
+  const [savingCandidateProfile, setSavingCandidateProfile] = useState(false);
+
   // Admin Master Template State (Common tasks set for any new user)
   const [adminSubTab, setAdminSubTab] = useState('candidates'); // 'candidates' | 'common_template'
   const [commonTasks, setCommonTasks] = useState([]);
@@ -931,6 +940,23 @@ export default function OnboardingHub({ users = [], onRefresh, onOpenOnboardModa
                       <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
                         {selectedUser.status === 'active' ? 'Fully Onboarded' : 'In Onboarding'}
                       </span>
+                      {(isAdmin || isManager) && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditProfileName(selectedUser.full_name || '');
+                            setEditProfileDesignation(selectedUser.designation || '');
+                            setEditProfileDepartment(selectedUser.department || '');
+                            setEditProfilePhone(selectedUser.phone || '');
+                            setEditProfileLocation(selectedUser.location || '');
+                            setShowEditProfileModal(true);
+                          }}
+                          className="p-1.5 text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg border border-transparent hover:border-emerald-200 transition-colors cursor-pointer"
+                          title="Edit member name and profile"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
                     </div>
                     <p className="text-xs text-slate-500 mt-0.5">{selectedUser.designation} &bull; {selectedUser.department}</p>
                     
@@ -1437,6 +1463,157 @@ export default function OnboardingHub({ users = [], onRefresh, onOpenOnboardModa
                   className="px-5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 rounded-xl shadow-xs transition-colors cursor-pointer"
                 >
                   {savingEdit ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Candidate Profile Details Modal */}
+      {showEditProfileModal && selectedUser && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden animate-scaleUp">
+            <div className="p-6 bg-gradient-to-r from-emerald-600 to-teal-700 text-white relative">
+              <button
+                type="button"
+                onClick={() => setShowEditProfileModal(false)}
+                className="absolute top-5 right-5 p-1.5 text-white/80 hover:text-white rounded-xl hover:bg-white/10 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 backdrop-blur-xs text-emerald-100 text-xs font-semibold mb-2">
+                <Edit2 className="w-3.5 h-3.5 text-amber-300" />
+                <span>Admin Profile Editor</span>
+              </div>
+              <h2 className="text-xl font-extrabold tracking-tight">Edit Member Profile</h2>
+              <p className="text-emerald-100/90 text-xs mt-1">
+                Change full name, designation, department, or contact details.
+              </p>
+            </div>
+
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (!editProfileName.trim() || savingCandidateProfile) return;
+                try {
+                  setSavingCandidateProfile(true);
+                  const updated = await api.updateUser(selectedUser.id, {
+                    full_name: editProfileName.trim(),
+                    designation: editProfileDesignation.trim(),
+                    department: editProfileDepartment.trim(),
+                    phone: editProfilePhone.trim(),
+                    location: editProfileLocation.trim(),
+                    actor_name: currentUser?.full_name || 'Admin'
+                  });
+
+                  if (selectedUser.id === currentUser?.id && onUpdateCurrentUser) {
+                    onUpdateCurrentUser({
+                      ...currentUser,
+                      full_name: editProfileName.trim(),
+                      designation: editProfileDesignation.trim(),
+                      department: editProfileDepartment.trim(),
+                      phone: editProfilePhone.trim(),
+                      location: editProfileLocation.trim()
+                    });
+                  }
+
+                  setSelectedUser(prev => ({
+                    ...prev,
+                    full_name: editProfileName.trim(),
+                    designation: editProfileDesignation.trim(),
+                    department: editProfileDepartment.trim(),
+                    phone: editProfilePhone.trim(),
+                    location: editProfileLocation.trim()
+                  }));
+
+                  if (onRefresh) onRefresh();
+                  setShowEditProfileModal(false);
+                } catch (err) {
+                  alert(err.message || 'Failed to update member profile');
+                } finally {
+                  setSavingCandidateProfile(false);
+                }
+              }}
+              className="p-6 space-y-4"
+            >
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1.5">Full Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={editProfileName}
+                  onChange={(e) => setEditProfileName(e.target.value)}
+                  placeholder="e.g. Alex Morgan"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-emerald-500 focus:bg-white"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1.5">Job Title / Designation</label>
+                  <input
+                    type="text"
+                    value={editProfileDesignation}
+                    onChange={(e) => setEditProfileDesignation(e.target.value)}
+                    placeholder="e.g. QA Engineer"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-emerald-500 focus:bg-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1.5">Department</label>
+                  <input
+                    type="text"
+                    value={editProfileDepartment}
+                    onChange={(e) => setEditProfileDepartment(e.target.value)}
+                    placeholder="e.g. Quality Assurance"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-emerald-500 focus:bg-white"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1.5">Phone Number</label>
+                  <input
+                    type="text"
+                    value={editProfilePhone}
+                    onChange={(e) => setEditProfilePhone(e.target.value)}
+                    placeholder="+1 555-0192"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-emerald-500 focus:bg-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1.5">Location / Office</label>
+                  <input
+                    type="text"
+                    value={editProfileLocation}
+                    onChange={(e) => setEditProfileLocation(e.target.value)}
+                    placeholder="e.g. San Francisco, CA"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-emerald-500 focus:bg-white"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setShowEditProfileModal(false)}
+                  disabled={savingCandidateProfile}
+                  className="px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingCandidateProfile || !editProfileName.trim()}
+                  className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  <Check className="w-3.5 h-3.5" />
+                  <span>{savingCandidateProfile ? 'Saving...' : 'Save Profile'}</span>
                 </button>
               </div>
             </form>

@@ -9,6 +9,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { initDB, query, getOne, getDbType } = require('./db');
 const { seedData } = require('./seed');
+const { notifyAdminNewUser, isMailConfigured, ADMIN_EMAIL } = require('./email');
 require('dotenv').config();
 
 const app = express();
@@ -26,6 +27,8 @@ app.use(helmet({
 
 // 2. Restricted Origin CORS
 const defaultAllowedOrigins = [
+  'https://bizproject.biznessimpact.com',
+  'http://bizproject.biznessimpact.com',
   'https://bizproject-80307.netlify.app',
   'http://localhost:5173',
   'http://localhost:3000',
@@ -339,6 +342,16 @@ app.post('/api/auth/register', authLimiter, async (req, res) => {
       details: `New account registered with email (${email})`
     });
 
+    // Notify Admin via email (non-blocking)
+    notifyAdminNewUser({
+      id: userId,
+      full_name,
+      email: email.toLowerCase().trim(),
+      department,
+      designation,
+      auth_provider: 'Password / Local'
+    }).catch(e => console.error('[Email] Background admin notification error:', e.message));
+
     const user = await getOne('SELECT id, email, full_name, avatar_url, role, department, designation, auth_provider, status, xp, level FROM users WHERE id = ?', [userId]);
     res.status(201).json({ token, user });
   } catch (err) {
@@ -486,6 +499,18 @@ app.post('/api/auth/social', authLimiter, async (req, res) => {
       action: actionName,
       details: `${isNewRegistration ? 'Registered' : 'Logged in'} using ${provider.charAt(0).toUpperCase() + provider.slice(1)} account (${cleanEmail})`
     });
+
+    // Notify Admin via email if new registration (non-blocking)
+    if (isNewRegistration) {
+      notifyAdminNewUser({
+        id: user.id,
+        full_name: user.full_name,
+        email: user.email,
+        department: user.department,
+        designation: user.designation,
+        auth_provider: `Social (${provider})`
+      }).catch(e => console.error('[Email] Background admin notification error:', e.message));
+    }
 
     const safeUser = {
       id: user.id,
@@ -846,11 +871,14 @@ app.post('/api/upload/image', uploadLimiter, async (req, res) => {
 });
 
 // Soft-Delete (Deactivate) or Reactivate a member
-app.patch('/api/users/:id/status', async (req, res) => {
+app.patch('/api/users/:id/status', optionalAuth, async (req, res) => {
   try {
-    const callerRole = req.headers['x-user-role'];
-    if (callerRole === 'manager') {
-      return res.status(403).json({ error: 'Permission denied: Managers are not authorized to deactivate or modify member status.' });
+    const callerRole = (req.user && req.user.role) || req.headers['x-user-role'];
+    const callerId = (req.user && req.user.id) || req.headers['x-user-id'];
+
+    // Rule: Only administrators can deactivate or reactivate members
+    if (callerRole !== 'admin') {
+      return res.status(403).json({ error: 'Permission denied: Only administrators are authorized to deactivate or modify member status.' });
     }
 
     const { status, actor_name = 'Admin' } = req.body; // 'active', 'deactivated', 'suspended'
@@ -858,6 +886,16 @@ app.patch('/api/users/:id/status', async (req, res) => {
 
     const user = await getOne('SELECT * FROM users WHERE id = ?', [req.params.id]);
     if (!user) return res.status(404).json({ error: 'User not found' });
+
+    // Rule: User cannot deactivate / soft-delete themselves
+    if (status === 'deactivated' || status === 'suspended') {
+      if (callerId && String(callerId) === String(req.params.id)) {
+        return res.status(400).json({ error: 'Action not allowed: You cannot deactivate or suspend your own account.' });
+      }
+      if (req.user && req.user.email && user.email && req.user.email.toLowerCase() === user.email.toLowerCase()) {
+        return res.status(400).json({ error: 'Action not allowed: You cannot deactivate or suspend your own account.' });
+      }
+    }
 
     await query("UPDATE users SET status = ?, updated_at = datetime('now') WHERE id = ?", [status, req.params.id]);
 
@@ -882,13 +920,26 @@ app.patch('/api/users/:id/status', async (req, res) => {
 app.delete('/api/users/:id', optionalAuth, async (req, res) => {
   try {
     const callerRole = (req.user && req.user.role) || req.headers['x-user-role'];
+    const callerId = (req.user && req.user.id) || req.headers['x-user-id'];
+
+    // Rule: Only administrators can permanently delete members
     if (callerRole !== 'admin') {
-      return res.status(403).json({ error: 'Permission denied: Only administrators are authorized to permanently delete members.' });
+      return res.status(403).json({ error: 'Permission denied: Only administrators are authorized to delete members.' });
+    }
+
+    // Rule: User cannot delete himself
+    if (callerId && String(callerId) === String(req.params.id)) {
+      return res.status(400).json({ error: 'Action not allowed: You cannot delete your own account.' });
     }
 
     const actor_name = req.query.actor_name || 'Admin';
     const user = await getOne('SELECT * FROM users WHERE id = ?', [req.params.id]);
     if (!user) return res.status(404).json({ error: 'User not found' });
+
+    // Safety check against email match as well
+    if (req.user && req.user.email && user.email && req.user.email.toLowerCase() === user.email.toLowerCase()) {
+      return res.status(400).json({ error: 'Action not allowed: You cannot delete your own account.' });
+    }
 
     await query('DELETE FROM users WHERE id = ?', [req.params.id]);
 
@@ -902,6 +953,45 @@ app.delete('/api/users/:id', optionalAuth, async (req, res) => {
     });
 
     res.json({ success: true, message: `Member ${user.full_name} removed.` });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Mail System Status & Test Email (Admin Only)
+app.get('/api/admin/mail-status', optionalAuth, async (req, res) => {
+  const configured = isMailConfigured();
+  res.json({
+    configured,
+    admin_email: ADMIN_EMAIL,
+    smtp_host: process.env.SMTP_HOST || null,
+    smtp_port: process.env.SMTP_PORT || null,
+    smtp_user: process.env.SMTP_USER || null
+  });
+});
+
+app.post('/api/admin/test-email', optionalAuth, async (req, res) => {
+  try {
+    const callerRole = (req.user && req.user.role) || req.headers['x-user-role'];
+    if (callerRole !== 'admin') {
+      return res.status(403).json({ error: 'Permission denied: Only administrators can trigger test emails.' });
+    }
+
+    const testUser = {
+      id: 'usr_test',
+      full_name: 'Test Member',
+      email: 'newuser.test@example.com',
+      department: 'Engineering',
+      designation: 'Software Engineer',
+      auth_provider: 'Test Trigger'
+    };
+
+    const result = await notifyAdminNewUser(testUser);
+    if (!result.success) {
+      return res.status(400).json({ error: result.error || 'Mail service is not configured or failed.', reason: result.reason });
+    }
+
+    res.json({ success: true, message: `Test email sent successfully to ${ADMIN_EMAIL}!`, messageId: result.messageId });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

@@ -640,6 +640,11 @@ export default function App() {
               onRefresh={loadInitialData}
               onOpenOnboardModal={() => setShowOnboardModal(true)}
               currentUser={currentUser}
+              onUpdateCurrentUser={(updatedUser) => {
+                setCurrentUser(updatedUser);
+                localStorage.setItem('apex_user', JSON.stringify(updatedUser));
+                loadInitialData();
+              }}
             />
           )}
 

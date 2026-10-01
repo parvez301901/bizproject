@@ -158,16 +158,19 @@ export const api = {
 
   async updateUserStatus(userId, status, actorName) {
     let role = 'member';
+    let currentUserId = '';
     try {
       const u = JSON.parse(localStorage.getItem('apex_user') || '{}');
       if (u.role) role = u.role;
+      if (u.id) currentUserId = u.id;
     } catch(e) {}
 
     const res = await authFetch(`${API_BASE}/users/${userId}/status`, {
       method: 'PATCH',
       headers: { 
         'Content-Type': 'application/json',
-        'x-user-role': role
+        'x-user-role': role,
+        'x-user-id': currentUserId
       },
       body: JSON.stringify({ status, actor_name: actorName })
     });
@@ -178,15 +181,18 @@ export const api = {
 
   async deleteUser(userId, actorName) {
     let role = 'member';
+    let currentUserId = '';
     try {
       const u = JSON.parse(localStorage.getItem('apex_user') || '{}');
       if (u.role) role = u.role;
+      if (u.id) currentUserId = u.id;
     } catch(e) {}
 
     const res = await authFetch(`${API_BASE}/users/${userId}?actor_name=${encodeURIComponent(actorName || 'Admin')}`, {
       method: 'DELETE',
       headers: {
-        'x-user-role': role
+        'x-user-role': role,
+        'x-user-id': currentUserId
       }
     });
     const json = await res.json();

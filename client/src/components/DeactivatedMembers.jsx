@@ -49,7 +49,12 @@ export default function DeactivatedMembers({ deactivatedUsers = [], onRefresh, c
 
   const handlePermanentDelete = async (user) => {
     if (!canModifyMembers) {
-      alert('Permission denied: Managers are not authorized to delete members.');
+      alert('Permission denied: Only administrators are authorized to delete members.');
+      return;
+    }
+    const isSelf = Boolean(currentUser && (user.id === currentUser.id || (currentUser.email && user.email?.toLowerCase() === currentUser.email.toLowerCase())));
+    if (isSelf) {
+      alert('Action not allowed: You cannot delete your own account.');
       return;
     }
     if (!window.confirm(`PERMANENT DELETE: Are you completely sure you want to permanently delete "${user.full_name}"? This cannot be undone.`)) {
@@ -135,6 +140,7 @@ export default function DeactivatedMembers({ deactivatedUsers = [], onRefresh, c
               ) : (
                 filtered.map((user) => {
                   const isLoading = loadingId === user.id;
+                  const isSelf = Boolean(currentUser && (user.id === currentUser.id || (currentUser.email && user.email?.toLowerCase() === currentUser.email.toLowerCase())));
 
                   return (
                     <tr key={user.id} className="hover:bg-slate-50/70 transition-colors">
@@ -147,7 +153,14 @@ export default function DeactivatedMembers({ deactivatedUsers = [], onRefresh, c
                             className="w-10 h-10 rounded-full border border-slate-200 object-cover grayscale opacity-80"
                           />
                           <div>
-                            <div className="font-semibold text-slate-800 text-sm">{user.full_name}</div>
+                            <div className="font-semibold text-slate-800 text-sm flex items-center gap-1.5 flex-wrap">
+                              <span>{user.full_name}</span>
+                              {isSelf && (
+                                <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded-full border border-emerald-200">
+                                  You
+                                </span>
+                              )}
+                            </div>
                             <div className="text-xs text-slate-400">{user.designation}</div>
                           </div>
                         </div>
@@ -201,14 +214,16 @@ export default function DeactivatedMembers({ deactivatedUsers = [], onRefresh, c
                               <span>Restore Member</span>
                             </button>
 
-                            <button
-                              onClick={() => handlePermanentDelete(user)}
-                              disabled={isLoading}
-                              className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors border border-transparent hover:border-rose-200 cursor-pointer"
-                              title="Permanent Hard Delete"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                            {!isSelf && (
+                              <button
+                                onClick={() => handlePermanentDelete(user)}
+                                disabled={isLoading}
+                                className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors border border-transparent hover:border-rose-200 cursor-pointer"
+                                title="Permanent Hard Delete"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
                           </div>
                         ) : (
                           <span className="text-xs text-slate-400 italic">Read-only</span>

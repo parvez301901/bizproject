@@ -17,8 +17,12 @@ import {
   UserCheck,
   ChevronRight,
   Camera,
-  Upload
+  Upload,
+  Edit2,
+  X,
+  Check
 } from 'lucide-react';
+import { api } from '../services/api';
 import UploadMemberImageModal from './UploadMemberImageModal';
 
 export default function MyOverviewView({
@@ -32,6 +36,11 @@ export default function MyOverviewView({
 }) {
   const [activeSubTab, setActiveSubTab] = useState('summary');
   const [showAvatarModal, setShowAvatarModal] = useState(false);
+  const [showEditNameModal, setShowEditNameModal] = useState(false);
+  const [newName, setNewName] = useState(currentUser?.full_name || '');
+  const [newDesignation, setNewDesignation] = useState(currentUser?.designation || '');
+  const [newDepartment, setNewDepartment] = useState(currentUser?.department || '');
+  const [savingProfile, setSavingProfile] = useState(false);
 
   if (!currentUser) return null;
 
@@ -84,9 +93,24 @@ export default function MyOverviewView({
                 <Sparkles className="w-3.5 h-3.5 text-amber-300" />
                 <span>Team Member Workspace</span>
               </div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-                Welcome back, {currentUser.full_name}!
-              </h1>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
+                  Welcome back, {currentUser.full_name}!
+                </h1>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setNewName(currentUser.full_name || '');
+                    setNewDesignation(currentUser.designation || '');
+                    setNewDepartment(currentUser.department || '');
+                    setShowEditNameModal(true);
+                  }}
+                  className="p-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-white/80 hover:text-white transition-all cursor-pointer border border-white/10"
+                  title="Edit my name and title"
+                >
+                  <Edit2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
               <p className="text-emerald-100/90 text-xs sm:text-sm mt-1">
                 {currentUser.designation || 'Team Member'} &bull; {currentUser.department || 'General'}
               </p>
@@ -355,6 +379,114 @@ export default function MyOverviewView({
           }
         }}
       />
+
+      {/* 1-Click Edit Profile & Name Modal */}
+      {showEditNameModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden animate-scaleUp">
+            <div className="p-6 bg-gradient-to-r from-emerald-600 to-teal-700 text-white relative">
+              <button
+                type="button"
+                onClick={() => setShowEditNameModal(false)}
+                className="absolute top-5 right-5 p-1.5 text-white/80 hover:text-white rounded-xl hover:bg-white/10 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 backdrop-blur-xs text-emerald-100 text-xs font-semibold mb-2">
+                <Edit2 className="w-3.5 h-3.5 text-amber-300" />
+                <span>My Profile</span>
+              </div>
+              <h2 className="text-xl font-extrabold tracking-tight">Edit Your Profile</h2>
+              <p className="text-emerald-100/90 text-xs mt-1">
+                Update your display name, designation, and department.
+              </p>
+            </div>
+
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (!newName.trim() || savingProfile) return;
+                try {
+                  setSavingProfile(true);
+                  const updated = await api.updateUser(currentUser.id, {
+                    full_name: newName.trim(),
+                    designation: newDesignation.trim(),
+                    department: newDepartment.trim(),
+                    actor_name: newName.trim()
+                  });
+                  if (onUpdateCurrentUser) {
+                    onUpdateCurrentUser({
+                      ...currentUser,
+                      full_name: newName.trim(),
+                      designation: newDesignation.trim(),
+                      department: newDepartment.trim()
+                    });
+                  }
+                  setShowEditNameModal(false);
+                } catch (err) {
+                  alert(err.message || 'Failed to update name');
+                } finally {
+                  setSavingProfile(false);
+                }
+              }}
+              className="p-6 space-y-4"
+            >
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1.5">Your Full Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  placeholder="e.g. Alex Morgan"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-emerald-500 focus:bg-white"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1.5">Designation / Role Title</label>
+                <input
+                  type="text"
+                  value={newDesignation}
+                  onChange={(e) => setNewDesignation(e.target.value)}
+                  placeholder="e.g. VP of Product"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-emerald-500 focus:bg-white"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1.5">Department</label>
+                <input
+                  type="text"
+                  value={newDepartment}
+                  onChange={(e) => setNewDepartment(e.target.value)}
+                  placeholder="e.g. Quality Assurance"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-emerald-500 focus:bg-white"
+                />
+              </div>
+
+              <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setShowEditNameModal(false)}
+                  disabled={savingProfile}
+                  className="px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingProfile || !newName.trim()}
+                  className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  <Check className="w-3.5 h-3.5" />
+                  <span>{savingProfile ? 'Saving...' : 'Save Profile'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
