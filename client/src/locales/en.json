@@ -42,7 +42,9 @@
   "sidebar": {
     "workspace": "Workspace",
     "adminOverview": "Admin Overview",
+    "myOverview": "My Overview",
     "onboardingHub": "Onboarding Hub",
+    "onboardingPanel": "Onboarding Panel",
     "teamDirectory": "Team Directory",
     "messageBoard": "Message Board",
     "instructionVideos": "Instruction Videos",

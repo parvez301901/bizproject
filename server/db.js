@@ -173,6 +173,7 @@ function setupSQLiteSchema() {
   try { sqliteDb.exec("ALTER TABLE activity_logs ADD COLUMN user_name TEXT"); } catch(e) {}
   try { sqliteDb.exec("ALTER TABLE users ADD COLUMN xp INTEGER DEFAULT 0"); } catch(e) {}
   try { sqliteDb.exec("ALTER TABLE users ADD COLUMN level INTEGER DEFAULT 1"); } catch(e) {}
+  try { sqliteDb.exec("ALTER TABLE tasks ADD COLUMN parent_id TEXT"); } catch(e) {}
   try { sqliteDb.exec("ALTER TABLE tasks ADD COLUMN xp_reward INTEGER DEFAULT 50"); } catch(e) {}
   try { sqliteDb.exec("ALTER TABLE tasks ADD COLUMN completed_at TEXT"); } catch(e) {}
   try { sqliteDb.exec("ALTER TABLE tasks ADD COLUMN qc_issues TEXT"); } catch(e) {}
@@ -189,7 +190,12 @@ function setupSQLiteSchema() {
   try { sqliteDb.exec("ALTER TABLE projects ADD COLUMN frontend_tech TEXT"); } catch(e) {}
   try { sqliteDb.exec("ALTER TABLE projects ADD COLUMN backend_tech TEXT"); } catch(e) {}
   try { sqliteDb.exec("ALTER TABLE projects ADD COLUMN database_tech TEXT"); } catch(e) {}
+  try { sqliteDb.exec("ALTER TABLE projects ADD COLUMN assigned_user_ids TEXT"); } catch(e) {}
   try { sqliteDb.exec("ALTER TABLE onboarding_tasks ADD COLUMN xp_reward INTEGER DEFAULT 35"); } catch(e) {}
+  try { sqliteDb.exec("ALTER TABLE onboarding_tasks ADD COLUMN xp_claimed INTEGER DEFAULT 0"); } catch(e) {}
+  try { sqliteDb.exec("ALTER TABLE onboarding_tasks ADD COLUMN approval_status TEXT DEFAULT 'pending'"); } catch(e) {}
+  try { sqliteDb.exec("ALTER TABLE onboarding_tasks ADD COLUMN created_by TEXT DEFAULT 'admin'"); } catch(e) {}
+  try { sqliteDb.exec("ALTER TABLE users ADD COLUMN name_reward_claimed INTEGER DEFAULT 0"); } catch(e) {}
 
   sqliteDb.exec(`
     CREATE TABLE IF NOT EXISTS work_logs (
@@ -247,6 +253,15 @@ function setupSQLiteSchema() {
     CREATE INDEX IF NOT EXISTS idx_instruction_videos_uploader ON instruction_videos(uploader_id);
     CREATE INDEX IF NOT EXISTS idx_instruction_videos_audience ON instruction_videos(audience_type);
     CREATE INDEX IF NOT EXISTS idx_instruction_videos_created ON instruction_videos(created_at);
+
+    CREATE TABLE IF NOT EXISTS common_onboarding_tasks (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      category TEXT DEFAULT 'General',
+      xp_reward INTEGER DEFAULT 35,
+      order_index INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
   `);
 }
 
@@ -393,6 +408,15 @@ async function setupPostgresSchema() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
 
+      CREATE TABLE IF NOT EXISTS common_onboarding_tasks (
+        id VARCHAR(64) PRIMARY KEY,
+        title TEXT NOT NULL,
+        category VARCHAR(64) DEFAULT 'General',
+        xp_reward INTEGER DEFAULT 35,
+        order_index INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
       CREATE INDEX IF NOT EXISTS idx_tasks_board ON tasks(board_id);
       CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
       CREATE INDEX IF NOT EXISTS idx_tasks_priority ON tasks(priority);
@@ -411,6 +435,7 @@ async function setupPostgresSchema() {
       "ALTER TABLE activity_logs ADD COLUMN IF NOT EXISTS user_name VARCHAR(128)",
       "ALTER TABLE users ADD COLUMN IF NOT EXISTS xp INTEGER DEFAULT 0",
       "ALTER TABLE users ADD COLUMN IF NOT EXISTS level INTEGER DEFAULT 1",
+      "ALTER TABLE tasks ADD COLUMN IF NOT EXISTS parent_id VARCHAR(64)",
       "ALTER TABLE tasks ADD COLUMN IF NOT EXISTS xp_reward INTEGER DEFAULT 50",
       "ALTER TABLE tasks ADD COLUMN IF NOT EXISTS completed_at VARCHAR(64)",
       "ALTER TABLE tasks ADD COLUMN IF NOT EXISTS qc_issues TEXT",
@@ -427,7 +452,12 @@ async function setupPostgresSchema() {
       "ALTER TABLE projects ADD COLUMN IF NOT EXISTS frontend_tech TEXT",
       "ALTER TABLE projects ADD COLUMN IF NOT EXISTS backend_tech TEXT",
       "ALTER TABLE projects ADD COLUMN IF NOT EXISTS database_tech TEXT",
-      "ALTER TABLE onboarding_tasks ADD COLUMN IF NOT EXISTS xp_reward INTEGER DEFAULT 35"
+      "ALTER TABLE projects ADD COLUMN IF NOT EXISTS assigned_user_ids TEXT",
+      "ALTER TABLE onboarding_tasks ADD COLUMN IF NOT EXISTS xp_reward INTEGER DEFAULT 35",
+      "ALTER TABLE onboarding_tasks ADD COLUMN IF NOT EXISTS xp_claimed INTEGER DEFAULT 0",
+      "ALTER TABLE onboarding_tasks ADD COLUMN IF NOT EXISTS approval_status VARCHAR(32) DEFAULT 'pending'",
+      "ALTER TABLE onboarding_tasks ADD COLUMN IF NOT EXISTS created_by VARCHAR(64) DEFAULT 'admin'",
+      "ALTER TABLE users ADD COLUMN IF NOT EXISTS name_reward_claimed INTEGER DEFAULT 0"
     ];
 
     for (const sql of alterColumns) {

@@ -29,6 +29,7 @@ import TeamDirectory from './components/TeamDirectory';
 import MondayTable from './components/MondayTable';
 import KanbanBoard from './components/KanbanBoard';
 import TaskModal from './components/TaskModal';
+import CreateTaskModal from './components/CreateTaskModal';
 import OnboardModal from './components/OnboardModal';
 import NewProjectModal from './components/NewProjectModal';
 import EditProjectModal from './components/EditProjectModal';
@@ -43,10 +44,24 @@ import LeaderboardView from './components/LeaderboardView';
 import MessageBoardView from './components/MessageBoardView';
 import InstructionVideosView from './components/InstructionVideosView';
 import ImportantNoticeModal from './components/ImportantNoticeModal';
+import MyOverviewView from './components/MyOverviewView';
+import DevPageIndicator from './components/DevPageIndicator';
+import HelpGuideModal from './components/HelpGuideModal';
+import HelpFloatingButton from './components/HelpFloatingButton';
+import AdminSettingsModal from './components/AdminSettingsModal';
 import { api } from './services/api';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('project'); // 'dashboard', 'onboarding', 'team', 'messages', 'videos', 'reports', 'deactivated', 'project', 'logs'
+  const [activeTab, setActiveTab] = useState(() => {
+    try {
+      const saved = localStorage.getItem('apex_user');
+      if (saved) {
+        const u = JSON.parse(saved);
+        if (u.role === 'team' || u.role === 'member') return 'overview';
+      }
+    } catch(e) {}
+    return 'dashboard';
+  }); // 'dashboard', 'overview', 'onboarding', 'team', 'messages', 'videos', 'reports', 'deactivated', 'project', 'logs'
   const [projectViewMode, setProjectViewMode] = useState('table'); // 'table', 'kanban'
   
   // Auth state - Require real authentication
@@ -100,14 +115,61 @@ export default function App() {
   
   // Modal states
   const [inspectedTask, setInspectedTask] = useState(null);
+  const [showCreateTaskModal, setShowCreateTaskModal] = useState(false);
   const [showOnboardModal, setShowOnboardModal] = useState(false);
   const [showNewProjectModal, setShowNewProjectModal] = useState(false);
   const [showEditProjectModal, setShowEditProjectModal] = useState(false);
   const [showProjectOverviewModal, setShowProjectOverviewModal] = useState(false);
   const [showLogWorkModal, setShowLogWorkModal] = useState(false);
   const [showNoticeModal, setShowNoticeModal] = useState(false);
+  const [showHelpGuideModal, setShowHelpGuideModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [hideDevFileIndicator, setHideDevFileIndicator] = useState(() => {
+    try {
+      return localStorage.getItem('apex_hide_dev_file') === 'true';
+    } catch {
+      return false;
+    }
+  });
   const [importantNoticeCount, setImportantNoticeCount] = useState(0);
   const [loading, setLoading] = useState(true);
+
+  // Sync hideDevFileIndicator to localStorage
+  const handleToggleHideDevFile = (val) => {
+    setHideDevFileIndicator(val);
+    try {
+      localStorage.setItem('apex_hide_dev_file', val ? 'true' : 'false');
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  // Guide handlers
+  const handleGuideNavigation = (targetTab) => {
+    if (targetTab === 'project' && !selectedProject && projects.length > 0) {
+      setSelectedProject(projects[0]);
+    }
+    setActiveTab(targetTab);
+  };
+
+  const handleGuideModalAction = (modalType) => {
+    if (modalType === 'createTask') {
+      if (!selectedProject && projects.length > 0) {
+        setSelectedProject(projects[0]);
+      }
+      setShowCreateTaskModal(true);
+    } else if (modalType === 'logWork') {
+      setShowLogWorkModal(true);
+    } else if (modalType === 'onboard') {
+      setShowOnboardModal(true);
+    } else if (modalType === 'newProject') {
+      setShowNewProjectModal(true);
+    } else if (modalType === 'auth') {
+      setShowAuthModal(true);
+    } else if (modalType === 'notice') {
+      setShowNoticeModal(true);
+    }
+  };
 
   // Initial load
   const loadInitialData = async () => {
@@ -283,6 +345,8 @@ export default function App() {
           setShowProjectOverviewModal(true);
         }}
         onOpenLogWork={() => setShowLogWorkModal(true)}
+        onOpenHelpGuide={() => setShowHelpGuideModal(true)}
+        onOpenSettings={() => setShowSettingsModal(true)}
         isOpen={mobileMenuOpen}
         onClose={() => setMobileMenuOpen(false)}
       />
@@ -417,7 +481,7 @@ export default function App() {
               </button>
 
               <button
-                onClick={() => handleCreateTask({ title: 'New Item', status: 'To Do', priority: 'Medium' })}
+                onClick={() => setShowCreateTaskModal(true)}
                 className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shadow-sm shadow-emerald-600/20 transition-all cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
@@ -529,6 +593,23 @@ export default function App() {
               currentUser={currentUser}
               onOpenLogWork={() => setShowLogWorkModal(true)}
               onOpenNotice={() => setShowNoticeModal(true)}
+              onOpenSettings={() => setShowSettingsModal(true)}
+            />
+          )}
+
+          {activeTab === 'overview' && (
+            <MyOverviewView
+              currentUser={currentUser}
+              stats={stats}
+              projects={projects}
+              onNavigateToTab={(tab) => setActiveTab(tab)}
+              onOpenLogWork={() => setShowLogWorkModal(true)}
+              onSelectProject={(proj) => setSelectedProject(proj)}
+              onUpdateCurrentUser={(updatedUser) => {
+                setCurrentUser(updatedUser);
+                localStorage.setItem('apex_user', JSON.stringify(updatedUser));
+                loadInitialData();
+              }}
             />
           )}
 
@@ -544,6 +625,12 @@ export default function App() {
               users={activeUsers}
               onRefresh={loadInitialData}
               onOpenOnboardModal={() => setShowOnboardModal(true)}
+              currentUser={currentUser}
+              onUpdateCurrentUser={(updatedUser) => {
+                setCurrentUser(updatedUser);
+                localStorage.setItem('apex_user', JSON.stringify(updatedUser));
+                loadInitialData();
+              }}
             />
           )}
 
@@ -596,6 +683,7 @@ export default function App() {
             <WorkReportView
               users={activeUsers}
               projects={projects}
+              currentUser={currentUser}
               onOpenLogWork={() => setShowLogWorkModal(true)}
             />
           )}
@@ -651,6 +739,18 @@ export default function App() {
             setInspectedTask(t);
             setShowLogWorkModal(true);
           }}
+        />
+      )}
+
+      {/* Create Task & Member XP Assignment Modal */}
+      {showCreateTaskModal && (
+        <CreateTaskModal
+          isOpen={showCreateTaskModal}
+          onClose={() => setShowCreateTaskModal(false)}
+          onCreateTask={handleCreateTask}
+          users={activeUsers}
+          tasks={boardData.tasks || []}
+          currentBoard={boardData.board}
         />
       )}
 
@@ -737,6 +837,43 @@ export default function App() {
           setShowNoticeModal(false);
         }}
       />
+
+      {/* Interactive System Help & Navigation Guide Modal */}
+      <HelpGuideModal
+        isOpen={showHelpGuideModal}
+        onClose={() => setShowHelpGuideModal(false)}
+        onNavigate={handleGuideNavigation}
+        onOpenModal={handleGuideModalAction}
+        currentUser={currentUser}
+      />
+
+      {/* Admin Workspace Settings Modal (Accessible only to Admin) */}
+      {currentUser?.role === 'admin' && (
+        <AdminSettingsModal
+          isOpen={showSettingsModal}
+          onClose={() => setShowSettingsModal(false)}
+          hideDevFileIndicator={hideDevFileIndicator}
+          setHideDevFileIndicator={handleToggleHideDevFile}
+        />
+      )}
+
+      {/* Stacked Assistant & Development Controls on the Right Bottom */}
+      <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-2.5 max-w-sm sm:max-w-md pointer-events-none">
+        {/* Help & Guide Button (Stacked on top of Dev Indicator) */}
+        <div className="pointer-events-auto">
+          <HelpFloatingButton onClick={() => setShowHelpGuideModal(true)} />
+        </div>
+
+        {/* Current Working File (DEV Page Indicator) - Strictly only for Admin & when not hidden */}
+        {currentUser?.role === 'admin' && !hideDevFileIndicator && (
+          <div className="pointer-events-auto w-full">
+            <DevPageIndicator
+              activeTab={activeTab}
+              projectViewMode={projectViewMode}
+            />
+          </div>
+        )}
+      </div>
     </div>
   );
 }

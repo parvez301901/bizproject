@@ -13,7 +13,8 @@ import {
   Filter,
   CheckSquare,
   Square,
-  MoreHorizontal
+  MoreHorizontal,
+  ListTree
 } from 'lucide-react';
 
 const STATUS_CONFIG = {
@@ -194,7 +195,12 @@ export default function MondayTable({
                       {/* Title (Inline editable on blur or click detail) */}
                       <td className="px-4 py-2.5">
                         <div className="flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                          <div className={`flex items-center gap-1.5 flex-1 min-w-0 ${task.parent_id ? 'pl-4 border-l-2 border-emerald-300 ml-1' : ''}`}>
+                            {task.parent_id && (
+                              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0 flex items-center gap-1">
+                                <ListTree className="w-2.5 h-2.5" /> Subtask
+                              </span>
+                            )}
                             <input
                               type="text"
                               defaultValue={task.title}

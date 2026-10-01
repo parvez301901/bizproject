@@ -112,9 +112,29 @@ async function seedData() {
     for (const user of [users[3], users[4]]) {
       for (const item of onboardingChecklistTemplate) {
         await query(`
-          INSERT INTO onboarding_tasks (id, user_id, title, category, is_completed, due_date)
-          VALUES (?, ?, ?, ?, ?, ?)
+          INSERT INTO onboarding_tasks (id, user_id, title, category, is_completed, due_date, xp_reward)
+          VALUES (?, ?, ?, ?, ?, ?, 35)
         `, [uuidv4(), user.id, item.title, item.category, item.is_completed, '2026-09-30']);
+      }
+    }
+
+    // 2b. Common Onboarding Tasks (Common template for all new users)
+    const existingCommon = await query('SELECT count(*) as cnt FROM common_onboarding_tasks');
+    const commonCount = Number(existingCommon[0]?.cnt || existingCommon[0]?.count || 0);
+    if (commonCount === 0) {
+      const defaultCommonTasks = [
+        { id: 'cot_1', title: 'Complete personal profile and emergency contact details', category: 'HR & Profile', xp_reward: 30, order_index: 1 },
+        { id: 'cot_2', title: 'Sign employee agreement & company policy documentation', category: 'Legal & HR', xp_reward: 40, order_index: 2 },
+        { id: 'cot_3', title: 'Setup Google Workspace, 2FA credentials & password manager', category: 'IT Security', xp_reward: 50, order_index: 3 },
+        { id: 'cot_4', title: 'Schedule 1-on-1 welcome session with mentor & manager', category: 'Team & Culture', xp_reward: 35, order_index: 4 },
+        { id: 'cot_5', title: 'Configure workstation tools, software licenses & repository keys', category: 'Engineering & Dev', xp_reward: 45, order_index: 5 },
+        { id: 'cot_6', title: 'Review company mission, SOP video tutorials & team workflows', category: 'Training & SOP', xp_reward: 50, order_index: 6 }
+      ];
+      for (const cot of defaultCommonTasks) {
+        await query(`
+          INSERT INTO common_onboarding_tasks (id, title, category, xp_reward, order_index)
+          VALUES (?, ?, ?, ?, ?)
+        `, [cot.id, cot.title, cot.category, cot.xp_reward, cot.order_index]);
       }
     }
 

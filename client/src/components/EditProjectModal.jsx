@@ -17,7 +17,9 @@ import {
   Database,
   Code2,
   Cpu,
-  HardDrive
+  HardDrive,
+  Users,
+  UserCheck
 } from 'lucide-react';
 import { api } from '../services/api';
 import DeleteProjectModal from './DeleteProjectModal';
@@ -67,10 +69,24 @@ export default function EditProjectModal({ project, onClose, onUpdated, currentU
     project.tech_stack || (project.tech?.technologies ? project.tech.technologies.join(', ') : '')
   );
   const [isRestricted, setIsRestricted] = useState(project.is_restricted ? true : false);
+  const [assignedUserIds, setAssignedUserIds] = useState(() => {
+    try {
+      if (Array.isArray(project.assigned_user_ids)) return project.assigned_user_ids;
+      if (typeof project.assigned_user_ids === 'string') return JSON.parse(project.assigned_user_ids);
+    } catch(e) {}
+    return [];
+  });
+  const [allUsersList, setAllUsersList] = useState([]);
   const [activeTab, setActiveTab] = useState('general'); // 'general', 'documentation', 'infrastructure', 'tech'
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+
+  React.useEffect(() => {
+    api.getUsers().then(users => {
+      setAllUsersList(users || []);
+    }).catch(console.error);
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -102,6 +118,7 @@ export default function EditProjectModal({ project, onClose, onUpdated, currentU
         database_tech: databaseTech.trim() || null,
         tech_stack: techStack.trim() || null,
         is_restricted: isRestricted ? 1 : 0,
+        assigned_user_ids: assignedUserIds,
         actor_name: currentUser?.full_name || 'Admin'
       });
       if (onUpdated) onUpdated();
@@ -521,6 +538,59 @@ export default function EditProjectModal({ project, onClose, onUpdated, currentU
                     </p>
                   </div>
                 </label>
+              </div>
+
+              {/* Explicit Team Member Project Assignment */}
+              <div className="p-4 bg-emerald-50/50 border border-emerald-200/80 rounded-xl space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                    <Users className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Assign Team Members to Project</span>
+                  </label>
+                  <span className="text-[10px] font-mono font-semibold bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded">
+                    {assignedUserIds.length} Assigned
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-500 leading-relaxed">
+                  Select which team members have access to this project. If none are selected, all non-restricted team members can view it.
+                </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto pt-1 pr-1">
+                  {allUsersList.map(u => {
+                    const isAssigned = assignedUserIds.includes(u.id);
+                    return (
+                      <button
+                        type="button"
+                        key={u.id}
+                        onClick={() => {
+                          setAssignedUserIds(prev => 
+                            prev.includes(u.id) ? prev.filter(id => id !== u.id) : [...prev, u.id]
+                          );
+                        }}
+                        className={`flex items-center justify-between p-2 rounded-lg text-xs font-medium border transition-all text-left cursor-pointer ${
+                          isAssigned
+                            ? 'bg-white border-emerald-500 text-emerald-900 shadow-2xs'
+                            : 'bg-white/60 border-slate-200 text-slate-600 hover:bg-white hover:text-slate-900'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <img
+                            src={u.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(u.full_name)}`}
+                            alt={u.full_name}
+                            className="w-5 h-5 rounded-full object-cover shrink-0"
+                          />
+                          <div className="truncate">
+                            <span className="block truncate font-semibold">{u.full_name}</span>
+                            <span className="text-[10px] text-slate-400 block truncate">{u.designation || u.role}</span>
+                          </div>
+                        </div>
+                        {isAssigned && (
+                          <UserCheck className="w-4 h-4 text-emerald-600 shrink-0 ml-1.5" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           )}

@@ -42,7 +42,9 @@
   "sidebar": {
     "workspace": "Arbetsyta",
     "adminOverview": "Admin Översikt",
+    "myOverview": "Min Översikt",
     "onboardingHub": "Introduktionsnav",
+    "onboardingPanel": "Introduktionspanel",
     "teamDirectory": "Teamkatalog",
     "messageBoard": "Meddelandecenter",
     "instructionVideos": "Instruktionsvideor",

@@ -15,7 +15,8 @@ import {
   Zap,
   Layers,
   ChevronRight,
-  Bell
+  Bell,
+  Settings
 } from 'lucide-react';
 import LeaderboardView from './LeaderboardView';
 
@@ -26,7 +27,8 @@ export default function AdminOverview({
   onNavigateToLeaderboard,
   currentUser,
   onOpenLogWork,
-  onOpenNotice
+  onOpenNotice,
+  onOpenSettings
 }) {
   const [activeSubView, setActiveSubView] = useState('overview'); // 'overview' | 'leaderboard'
 
@@ -65,7 +67,9 @@ export default function AdminOverview({
             <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
             <span>Executive Operations & Gamification HQ</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">Admin Operations Center</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
+            {currentUser?.role === 'manager' ? 'Management Operations Center' : 'Admin Operations Center'}
+          </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
             Real-time telemetry across workspace projects, task velocity, employee XP leveling, and leaderboard standings.
           </p>
@@ -95,6 +99,17 @@ export default function AdminOverview({
             >
               <Bell className="w-4 h-4 text-amber-600" />
               <span>Important Notices</span>
+            </button>
+          )}
+
+          {onOpenSettings && (
+            <button
+              onClick={onOpenSettings}
+              className="px-4 py-2.5 bg-white hover:bg-slate-100 text-slate-700 text-xs font-semibold rounded-xl border border-slate-200 shadow-2xs transition-all cursor-pointer flex items-center gap-2"
+              title="Configure workspace settings & developer indicators"
+            >
+              <Settings className="w-4 h-4 text-slate-600" />
+              <span>Settings</span>
             </button>
           )}
         </div>

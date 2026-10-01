@@ -1,0 +1,1425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ApexBoard — User & Admin Interactive Guide</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #10b981;
+      --primary-dark: #059669;
+      --primary-light: #ecfdf5;
+      --primary-border: #a7f3d0;
+      --accent: #3b82f6;
+      --amber: #f59e0b;
+      --slate-50: #f8fafc;
+      --slate-100: #f1f5f9;
+      --slate-200: #e2e8f0;
+      --slate-300: #cbd5e1;
+      --slate-400: #94a3b8;
+      --slate-500: #64748b;
+      --slate-600: #475569;
+      --slate-700: #334155;
+      --slate-800: #1e293b;
+      --slate-900: #0f172a;
+      --radius: 12px;
+      --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+      --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+      --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      background: #f8fafc;
+      color: var(--slate-800);
+      line-height: 1.6;
+      display: flex;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Left Sidebar Navigation */
+    .sidebar {
+      width: 300px;
+      background: #ffffff;
+      border-right: 1px solid var(--slate-200);
+      display: flex;
+      flex-col: column;
+      flex-direction: column;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      flex-shrink: 0;
+      z-index: 40;
+    }
+
+    .sidebar-header {
+      padding: 24px 20px;
+      border-bottom: 1px solid var(--slate-100);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .brand-icon {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, #10b981, #059669);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 20px;
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+    }
+
+    .brand-title {
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      color: var(--slate-900);
+    }
+
+    .brand-subtitle {
+      font-size: 11px;
+      color: var(--primary-dark);
+      font-weight: 600;
+      background: var(--primary-light);
+      padding: 2px 6px;
+      border-radius: 4px;
+      display: inline-block;
+      margin-top: 2px;
+    }
+
+    /* Role Quick Filter Tabs */
+    .role-switcher {
+      display: flex;
+      padding: 12px 16px;
+      gap: 6px;
+      background: var(--slate-50);
+      border-bottom: 1px solid var(--slate-100);
+    }
+
+    .role-btn {
+      flex: 1;
+      padding: 8px 10px;
+      font-size: 12px;
+      font-weight: 700;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--slate-500);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+
+    .role-btn:hover {
+      color: var(--slate-800);
+      background: rgba(255, 255, 255, 0.7);
+    }
+
+    .role-btn.active {
+      background: #ffffff;
+      color: var(--slate-900);
+      border-color: var(--slate-200);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .role-btn.active.member-tab {
+      color: #0284c7;
+      border-color: #bae6fd;
+      background: #f0f9ff;
+    }
+
+    .role-btn.active.admin-tab {
+      color: #7c3aed;
+      border-color: #ddd6fe;
+      background: #f5f3ff;
+    }
+
+    /* Nav Links in Sidebar */
+    .sidebar-nav {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 12px;
+    }
+
+    .nav-category {
+      font-size: 11px;
+      text-transform: uppercase;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      color: var(--slate-400);
+      padding: 10px 12px 6px 12px;
+    }
+
+    .nav-link {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--slate-600);
+      text-decoration: none;
+      border-radius: 8px;
+      transition: all 0.15s ease;
+      cursor: pointer;
+      margin-bottom: 2px;
+    }
+
+    .nav-link:hover {
+      background: var(--slate-100);
+      color: var(--slate-900);
+    }
+
+    .nav-link.active {
+      background: var(--primary-light);
+      color: var(--primary-dark);
+      font-weight: 700;
+    }
+
+    .nav-tag {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-left: auto;
+      text-transform: uppercase;
+    }
+
+    .tag-member {
+      background: #e0f2fe;
+      color: #0369a1;
+    }
+
+    .tag-admin {
+      background: #ede9fe;
+      color: #6d28d9;
+    }
+
+    .tag-all {
+      background: var(--slate-100);
+      color: var(--slate-600);
+    }
+
+    /* Main Content Area */
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      max-width: 100%;
+    }
+
+    /* Top Search Bar */
+    .top-bar {
+      background: #ffffff;
+      border-bottom: 1px solid var(--slate-200);
+      padding: 16px 36px;
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      backdrop-filter: blur(8px);
+      background-color: rgba(255, 255, 255, 0.95);
+    }
+
+    .search-container {
+      position: relative;
+      flex: 1;
+      max-width: 640px;
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--slate-400);
+      pointer-events: none;
+      font-size: 16px;
+    }
+
+    .search-input {
+      width: 100%;
+      padding: 10px 14px 10px 42px;
+      font-size: 14px;
+      border: 1px solid var(--slate-300);
+      border-radius: 10px;
+      outline: none;
+      transition: all 0.2s;
+      background: var(--slate-50);
+      color: var(--slate-800);
+      font-family: inherit;
+    }
+
+    .search-input:focus {
+      background: #ffffff;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+    }
+
+    .search-shortcut {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 11px;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--slate-400);
+      background: var(--slate-100);
+      border: 1px solid var(--slate-200);
+      padding: 2px 6px;
+      border-radius: 4px;
+      pointer-events: none;
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: 8px;
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      border: none;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #ffffff;
+      box-shadow: 0 2px 6px rgba(16, 185, 129, 0.25);
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-dark);
+    }
+
+    .btn-outline {
+      background: #ffffff;
+      border: 1px solid var(--slate-200);
+      color: var(--slate-700);
+    }
+
+    .btn-outline:hover {
+      background: var(--slate-50);
+      border-color: var(--slate-300);
+    }
+
+    /* Content Body */
+    .content-body {
+      padding: 36px;
+      max-width: 1080px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    /* Hero Banner */
+    .hero-banner {
+      background: linear-gradient(135deg, #064e3b 0%, #065f46 50%, #047857 100%);
+      color: white;
+      padding: 32px;
+      border-radius: 16px;
+      margin-bottom: 36px;
+      box-shadow: 0 10px 25px -5px rgba(6, 78, 59, 0.3);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-banner::after {
+      content: '⚡';
+      position: absolute;
+      right: 24px;
+      bottom: -10px;
+      font-size: 120px;
+      opacity: 0.08;
+      pointer-events: none;
+    }
+
+    .hero-banner h1 {
+      font-size: 26px;
+      font-weight: 800;
+      margin-bottom: 8px;
+      letter-spacing: -0.5px;
+    }
+
+    .hero-banner p {
+      font-size: 15px;
+      opacity: 0.9;
+      max-width: 650px;
+      line-height: 1.6;
+    }
+
+    .quick-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-top: 24px;
+    }
+
+    .stat-pill {
+      background: rgba(255, 255, 255, 0.12);
+      backdrop-filter: blur(6px);
+      padding: 12px 16px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      font-size: 13px;
+    }
+
+    .stat-pill strong {
+      display: block;
+      font-size: 16px;
+      color: #6ee7b7;
+    }
+
+    /* Search Results Info */
+    .search-alert {
+      display: none;
+      padding: 14px 18px;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 10px;
+      margin-bottom: 24px;
+      color: #1e40af;
+      font-size: 14px;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* Section & Cards */
+    .guide-section {
+      margin-bottom: 40px;
+      scroll-margin-top: 100px;
+    }
+
+    .section-title {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--slate-900);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-bottom: 2px solid var(--slate-200);
+      padding-bottom: 10px;
+    }
+
+    .section-title span.badge {
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .guide-card {
+      background: #ffffff;
+      border: 1px solid var(--slate-200);
+      border-radius: var(--radius);
+      padding: 24px;
+      margin-bottom: 16px;
+      box-shadow: var(--shadow-sm);
+      transition: all 0.2s ease;
+      position: relative;
+    }
+
+    .guide-card:hover {
+      box-shadow: var(--shadow-md);
+      border-color: var(--slate-300);
+    }
+
+    .card-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .card-title {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--slate-900);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-tags {
+      display: flex;
+      gap: 6px;
+    }
+
+    .tag {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 6px;
+    }
+
+    .card-desc {
+      color: var(--slate-600);
+      font-size: 14px;
+      margin-bottom: 16px;
+      line-height: 1.6;
+    }
+
+    /* Step-by-Step Instructions */
+    .steps-list {
+      list-style: none;
+      counter-reset: step-counter;
+      margin-top: 14px;
+      padding-left: 0;
+    }
+
+    .step-item {
+      position: relative;
+      padding-left: 36px;
+      margin-bottom: 14px;
+      font-size: 14px;
+      color: var(--slate-700);
+    }
+
+    .step-item::before {
+      counter-increment: step-counter;
+      content: counter(step-counter);
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 24px;
+      height: 24px;
+      background: var(--slate-100);
+      border: 1px solid var(--slate-300);
+      border-radius: 50%;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--slate-700);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .guide-card.member-card .step-item::before {
+      background: #e0f2fe;
+      border-color: #7dd3fc;
+      color: #0369a1;
+    }
+
+    .guide-card.admin-card .step-item::before {
+      background: #f5f3ff;
+      border-color: #c4b5fd;
+      color: #6d28d9;
+    }
+
+    /* Pro-Tip Box */
+    .callout {
+      padding: 14px 18px;
+      border-radius: 10px;
+      font-size: 13px;
+      margin-top: 16px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .callout-tip {
+      background: #ecfdf5;
+      border: 1px solid #a7f3d0;
+      color: #065f46;
+    }
+
+    .callout-warning {
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      color: #92400e;
+    }
+
+    .callout-admin {
+      background: #fdf4ff;
+      border: 1px solid #f5d0fe;
+      color: #86198f;
+    }
+
+    .callout-icon {
+      font-size: 16px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    /* Interactive Code/Command Blocks */
+    .code-block {
+      background: var(--slate-900);
+      color: #f8fafc;
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin: 12px 0;
+      overflow-x: auto;
+    }
+
+    .copy-btn {
+      background: var(--slate-700);
+      color: var(--slate-200);
+      border: none;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .copy-btn:hover {
+      background: var(--slate-600);
+      color: #ffffff;
+    }
+
+    /* Highlight Search Match */
+    mark {
+      background: #fef08a;
+      color: #854d0e;
+      padding: 1px 3px;
+      border-radius: 3px;
+      font-weight: 600;
+    }
+
+    /* Empty state */
+    .no-results {
+      text-align: center;
+      padding: 60px 20px;
+      background: white;
+      border: 1px dashed var(--slate-300);
+      border-radius: 16px;
+      display: none;
+    }
+
+    .no-results h3 {
+      font-size: 18px;
+      color: var(--slate-800);
+      margin-bottom: 8px;
+    }
+
+    .no-results p {
+      color: var(--slate-500);
+      font-size: 14px;
+    }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+      body {
+        flex-direction: column;
+      }
+      .sidebar {
+        width: 100%;
+        height: auto;
+        position: static;
+        border-right: none;
+        border-bottom: 1px solid var(--slate-200);
+      }
+      .content-body {
+        padding: 20px;
+      }
+      .top-bar {
+        padding: 12px 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Left Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <a href="/" class="brand">
+        <div class="brand-icon">✦</div>
+        <div>
+          <div class="brand-title">ApexBoard</div>
+          <div class="brand-subtitle">Knowledge Hub & Guide</div>
+        </div>
+      </a>
+    </div>
+
+    <!-- Audience Filter Switcher -->
+    <div class="role-switcher">
+      <button class="role-btn active" id="btn-filter-all" onclick="filterByRole('all')">
+        All
+      </button>
+      <button class="role-btn member-tab" id="btn-filter-member" onclick="filterByRole('member')">
+        👤 Member
+      </button>
+      <button class="role-btn admin-tab" id="btn-filter-admin" onclick="filterByRole('admin')">
+        🛡️ Admin
+      </button>
+    </div>
+
+    <!-- Navigation links -->
+    <nav class="sidebar-nav">
+      <div class="nav-category">Quick Start</div>
+      <a class="nav-link" href="#quick-start">
+        🚀 System Overview
+        <span class="nav-tag tag-all">Intro</span>
+      </a>
+      <a class="nav-link" href="#credentials">
+        🔑 Demo Login Credentials
+        <span class="nav-tag tag-all">Auth</span>
+      </a>
+
+      <div class="nav-category">Team Member How-Tos</div>
+      <a class="nav-link" href="#member-overview">
+        📊 My Overview & XP Tracker
+        <span class="nav-tag tag-member">Member</span>
+      </a>
+      <a class="nav-link" href="#member-profile">
+        🎨 Profile Photo & Avatars
+        <span class="nav-tag tag-member">Member</span>
+      </a>
+      <a class="nav-link" href="#member-onboarding">
+        🎓 Onboarding Wizard (+5 XP)
+        <span class="nav-tag tag-member">Member</span>
+      </a>
+      <a class="nav-link" href="#member-tasks">
+        ✅ Managing Tasks & Stages
+        <span class="nav-tag tag-member">Member</span>
+      </a>
+      <a class="nav-link" href="#member-logwork">
+        ⏱️ Logging Work & Productivity
+        <span class="nav-tag tag-member">Member</span>
+      </a>
+      <a class="nav-link" href="#member-videos">
+        📺 SOP Training Videos
+        <span class="nav-tag tag-member">Member</span>
+      </a>
+      <a class="nav-link" href="#member-messages">
+        📢 Team Message Board
+        <span class="nav-tag tag-member">Member</span>
+      </a>
+
+      <div class="nav-category">Admin & Manager How-Tos</div>
+      <a class="nav-link" href="#admin-overview">
+        📈 Admin Overview Dashboard
+        <span class="nav-tag tag-admin">Admin</span>
+      </a>
+      <a class="nav-link" href="#admin-projects">
+        📁 Creating & Managing Projects
+        <span class="nav-tag tag-admin">Admin</span>
+      </a>
+      <a class="nav-link" href="#admin-tasks">
+        ⚡ Creating Tasks with XP
+        <span class="nav-tag tag-admin">Admin</span>
+      </a>
+      <a class="nav-link" href="#admin-team">
+        👥 Personnel & Deactivation
+        <span class="nav-tag tag-admin">Admin</span>
+      </a>
+      <a class="nav-link" href="#admin-vault">
+        📦 Recovery Vault & Restores
+        <span class="nav-tag tag-admin">Admin</span>
+      </a>
+      <a class="nav-link" href="#admin-notices">
+        🚨 Broadcast Important Notices
+        <span class="nav-tag tag-admin">Admin</span>
+      </a>
+      <a class="nav-link" href="#admin-languages">
+        🌍 Language Packs & Uploads
+        <span class="nav-tag tag-admin">Admin</span>
+      </a>
+      <a class="nav-link" href="#admin-deploy">
+        ☁️ Automated Deployment
+        <span class="nav-tag tag-admin">Admin</span>
+      </a>
+    </nav>
+  </aside>
+
+  <!-- Main Content View -->
+  <main class="main">
+    <!-- Top Search & Controls -->
+    <header class="top-bar">
+      <div class="search-container">
+        <span class="search-icon">🔍</span>
+        <input 
+          type="text" 
+          id="search-input" 
+          class="search-input" 
+          placeholder="Search anything (e.g., 'how to log work', 'create task', 'XP', 'deactivate member', 'upload avatar')..."
+          oninput="handleSearch(this.value)"
+        />
+        <span class="search-shortcut">Ctrl + K</span>
+      </div>
+
+      <div class="top-actions">
+        <a href="/" class="btn btn-primary">
+          ← Back to ApexBoard
+        </a>
+      </div>
+    </header>
+
+    <div class="content-body">
+      <!-- Hero Banner -->
+      <section class="hero-banner">
+        <h1>ApexBoard Documentation & How-To Manual</h1>
+        <p>
+          Master all aspects of your enterprise workspace — from task execution and gamified XP earning for team members, to full project governance, team deactivation, audit recovery, and zero-downtime deployment for administrators.
+        </p>
+
+        <div class="quick-stats">
+          <div class="stat-pill">
+            <strong>For Members</strong>
+            7 Core Views • Tasks • Work Logging • XP Badges
+          </div>
+          <div class="stat-pill">
+            <strong>For Admins</strong>
+            Full Project Control • Role Security • Audit Logs
+          </div>
+          <div class="stat-pill">
+            <strong>Instant Search</strong>
+            Live keyword filtering across all workflows
+          </div>
+        </div>
+      </section>
+
+      <!-- Search Notice Bar -->
+      <div id="search-alert" class="search-alert">
+        <span id="search-results-text">Showing matching results</span>
+        <button onclick="clearSearch()" class="btn btn-outline" style="padding: 4px 10px; font-size: 12px;">Clear Filter</button>
+      </div>
+
+      <!-- No Results State -->
+      <div id="no-results" class="no-results">
+        <h3>No matching guides found</h3>
+        <p>Try searching with another keyword like "tasks", "member", "XP", "avatar", or "deploy".</p>
+      </div>
+
+      <!-- ================= SECTION: QUICK START ================= -->
+      <section class="guide-section" id="quick-start">
+        <h2 class="section-title">
+          <span>🚀 System Overview</span>
+          <span class="badge tag-all">General</span>
+        </h2>
+
+        <div class="guide-card" data-role="all" data-keywords="overview role member admin manager navigation layout switch">
+          <div class="card-header">
+            <h3 class="card-title">How ApexBoard Roles Work</h3>
+            <div class="card-tags">
+              <span class="tag tag-all">All Users</span>
+            </div>
+          </div>
+          <p class="card-desc">
+            ApexBoard automatically tailors its interface based on your logged-in role:
+          </p>
+          <ul class="steps-list">
+            <li class="step-item">
+              <strong>Team Member:</strong> Focused view with 7 key tabs (My Overview, Onboarding Hub, Message Board, Instruction Videos, Projects, Reports, Leaderboard) plus personal tasks and work-time logger.
+            </li>
+            <li class="step-item">
+              <strong>Manager:</strong> Operational oversight with full Projects Directory, Onboarding progress tracker, Team roster, Work Reports, and Leaderboard.
+            </li>
+            <li class="step-item">
+              <strong>Administrator:</strong> Global authority with Team Directory modification rights, Member Deactivation & Deletion, Recovery Vault, Audit Logs, and Project configuration.
+            </li>
+          </ul>
+        </div>
+
+        <div class="guide-card" id="credentials" data-role="all" data-keywords="login credentials password email demo accounts alex morgan sarah chen marcus vance">
+          <div class="card-header">
+            <h3 class="card-title">🔑 Pre-Configured Test Credentials</h3>
+            <div class="card-tags">
+              <span class="tag tag-all">Authentication</span>
+            </div>
+          </div>
+          <p class="card-desc">
+            You can sign in with any of these pre-seeded accounts using the Login button in the sidebar footer or top navbar:
+          </p>
+
+          <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 13px; margin: 12px 0;">
+              <thead>
+                <tr style="background: var(--slate-100); text-align: left;">
+                  <th style="padding: 10px 14px; border: 1px solid var(--slate-200);">Role</th>
+                  <th style="padding: 10px 14px; border: 1px solid var(--slate-200);">Email</th>
+                  <th style="padding: 10px 14px; border: 1px solid var(--slate-200);">Password</th>
+                  <th style="padding: 10px 14px; border: 1px solid var(--slate-200);">Name & Title</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style="padding: 10px 14px; border: 1px solid var(--slate-200); font-weight: 700; color: #7c3aed;">Admin</td>
+                  <td style="padding: 10px 14px; border: 1px solid var(--slate-200); font-family: monospace;">alex.morgan@company.com</td>
+                  <td style="padding: 10px 14px; border: 1px solid var(--slate-200); font-family: monospace;">Admin@12345</td>
+                  <td style="padding: 10px 14px; border: 1px solid var(--slate-200);">Alex Morgan (VP of Product)</td>
+                </tr>
+                <tr>
+                  <td style="padding: 10px 14px; border: 1px solid var(--slate-200); font-weight: 700; color: #0284c7;">Manager</td>
+                  <td style="padding: 10px 14px; border: 1px solid var(--slate-200); font-family: monospace;">sarah.chen@company.com</td>
+                  <td style="padding: 10px 14px; border: 1px solid var(--slate-200); font-family: monospace;">Sarah@12345</td>
+                  <td style="padding: 10px 14px; border: 1px solid var(--slate-200);">Sarah Chen (Principal Architect)</td>
+                </tr>
+                <tr>
+                  <td style="padding: 10px 14px; border: 1px solid var(--slate-200); font-weight: 700; color: #059669;">Member</td>
+                  <td style="padding: 10px 14px; border: 1px solid var(--slate-200); font-family: monospace;">marcus.vance@company.com</td>
+                  <td style="padding: 10px 14px; border: 1px solid var(--slate-200); font-family: monospace;">Marcus@12345</td>
+                  <td style="padding: 10px 14px; border: 1px solid var(--slate-200);">Marcus Vance (Sr. Frontend Eng)</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="callout callout-tip">
+            <span class="callout-icon">💡</span>
+            <div><strong>Registration Tip:</strong> Any new user registered through the Auth modal automatically receives the default role <code>team</code> (Member) for secure access.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= SECTION: MEMBER HOW-TOS ================= -->
+      <section class="guide-section" id="member-overview">
+        <h2 class="section-title">
+          <span>👤 Team Member How-To Guides</span>
+          <span class="badge tag-member">For Members</span>
+        </h2>
+
+        <!-- How to use My Overview -->
+        <div class="guide-card member-card" data-role="member" data-keywords="member overview xp level progress assigned projects hubs tasks status">
+          <div class="card-header">
+            <h3 class="card-title">How to Use My Overview & Track Your XP</h3>
+            <div class="card-tags">
+              <span class="tag tag-member">Member</span>
+            </div>
+          </div>
+          <p class="card-desc">
+            Your personal command center displays your current Level, total earned Experience Points (XP), assigned enterprise projects, and active tasks.
+          </p>
+          <ul class="steps-list">
+            <li class="step-item">Click <strong>My Overview</strong> in the sidebar.</li>
+            <li class="step-item">View your <strong>Level and XP Progress Bar</strong> at the top to see how close you are to your next level rank.</li>
+            <li class="step-item">Check the <strong>Assigned Projects Hub</strong> to view cards for every project your admin has linked to you.</li>
+            <li class="step-item">Click directly on any project card to open its task spreadsheet (MondayTable) or Kanban board.</li>
+            <li class="step-item">If you have pending project requests, view the pending project notification card to know your access state.</li>
+          </ul>
+        </div>
+
+        <!-- How to change profile photo & avatar -->
+        <div class="guide-card member-card" id="member-profile" data-role="member" data-keywords="upload avatar photo profile picture dicebear custom image change picture">
+          <div class="card-header">
+            <h3 class="card-title">How to Upload a Custom Profile Photo or Choose an Avatar</h3>
+            <div class="card-tags">
+              <span class="tag tag-member">Member</span>
+            </div>
+          </div>
+          <p class="card-desc">
+            Personalize your identity across the leaderboard, task assignments, and message board:
+          </p>
+          <ul class="steps-list">
+            <li class="step-item">Navigate to <strong>My Overview</strong>.</li>
+            <li class="step-item">Hover over your profile avatar badge and click the <strong>Upload Photo / Avatar</strong> icon or button.</li>
+            <li class="step-item"><strong>Option A — Upload Device Photo:</strong> Click the file upload area, select any JPEG/PNG/WebP image from your computer, preview it, and hit <strong>Save Profile Photo</strong>.</li>
+            <li class="step-item"><strong>Option B — Pick Stylized Avatar:</strong> Choose one of the illustrated avatar presets (Tech, Executive, Creative, Adventurer) for instant synchronization.</li>
+            <li class="step-item">Your new avatar updates immediately across your top header, sidebar, and audit history.</li>
+          </ul>
+        </div>
+
+        <!-- How to complete onboarding wizard -->
+        <div class="guide-card member-card" id="member-onboarding" data-role="member" data-keywords="onboarding wizard step checklist xp reward graduation name insert +5 xp">
+          <div class="card-header">
+            <h3 class="card-title">How to Complete the Onboarding Wizard & Claim +5 XP</h3>
+            <div class="card-tags">
+              <span class="tag tag-member">Member</span>
+            </div>
+          </div>
+          <p class="card-desc">
+            New team members can quickly ramp up and earn bonus XP during onboarding:
+          </p>
+          <ul class="steps-list">
+            <li class="step-item">Open <strong>Onboarding Panel</strong> from the sidebar.</li>
+            <li class="step-item">Follow the 3-step interactive onboarding flow:
+              <ul style="padding-left: 20px; margin-top: 6px;">
+                <li><strong>Step 1 (Welcome & Identity):</strong> Verify or update your full name. Clicking continue grants an immediate <strong>+5 XP</strong> celebration bonus!</li>
+                <li><strong>Step 2 (Readiness Checklist):</strong> Complete foundational checkboxes (Review SOPs, Join Message Board, Connect with Team Lead) to gain progress.</li>
+                <li><strong>Step 3 (Graduation):</strong> Review your completed badges and graduate to active status.</li>
+              </ul>
+            </li>
+            <li class="step-item">Your onboarding progress automatically reflects in the manager's talent oversight dashboard.</li>
+          </ul>
+        </div>
+
+        <!-- How to manage tasks in Monday Table and Kanban -->
+        <div class="guide-card member-card" id="member-tasks" data-role="member" data-keywords="tasks monday table spreadsheet kanban drag drop complete status priority comments">
+          <div class="card-header">
+            <h3 class="card-title">How to Manage Tasks in Monday Table & Kanban Board</h3>
+            <div class="card-tags">
+              <span class="tag tag-member">Member</span>
+            </div>
+          </div>
+          <p class="card-desc">
+            ApexBoard offers dual visualization modes for your daily work:
+          </p>
+          <ul class="steps-list">
+            <li class="step-item">Select any project under <strong>Assigned Boards</strong> in your sidebar.</li>
+            <li class="step-item">Switch between <strong>Table</strong> (structured spreadsheet) and <strong>Kanban</strong> (visual columns) using the view toggles at the top right.</li>
+            <li class="step-item">Click any task title to open the <strong>Task Modal</strong> to view descriptions, attachments, and discussion logs.</li>
+            <li class="step-item">To update task status, change the dropdown (Not Started, In Progress, In Review, Completed) or drag-and-drop the card to the next Kanban column.</li>
+            <li class="step-item">When you mark an assigned task as <strong>Completed</strong>, your earned XP reward is automatically banked into your total!</li>
+          </ul>
+        </div>
+
+        <!-- How to log work time -->
+        <div class="guide-card member-card" id="member-logwork" data-role="member" data-keywords="log work time hours productivity tracker timesheet daily log">
+          <div class="card-header">
+            <h3 class="card-title">How to Log Work Time & Productivity Hours</h3>
+            <div class="card-tags">
+              <span class="tag tag-member">Member</span>
+            </div>
+          </div>
+          <p class="card-desc">
+            Keep your team and manager updated on the hours invested in each milestone:
+          </p>
+          <ul class="steps-list">
+            <li class="step-item">Click the green <strong>"Log Work Time"</strong> button located at the bottom of the sidebar or in the top navigation bar.</li>
+            <li class="step-item">Select the <strong>Project</strong> you worked on from the dropdown list.</li>
+            <li class="step-item">Choose the specific <strong>Task</strong> or type a work summary if it was general maintenance.</li>
+            <li class="step-item">Input the <strong>Duration (in hours or decimal, e.g. 2.5)</strong> and date.</li>
+            <li class="step-item">Write a brief description of what was accomplished and click <strong>Submit Work Log</strong>.</li>
+            <li class="step-item">Your submission immediately logs into the central <strong>Reports</strong> hub for managerial payroll and productivity tracking.</li>
+          </ul>
+        </div>
+
+        <!-- How to watch training videos -->
+        <div class="guide-card member-card" id="member-videos" data-role="member" data-keywords="videos sop instruction training watch tutorial youtube audience">
+          <div class="card-header">
+            <h3 class="card-title">How to Watch Instruction Videos & SOPs</h3>
+            <div class="card-tags">
+              <span class="tag tag-member">Member</span>
+            </div>
+          </div>
+          <p class="card-desc">
+            Access internal standard operating procedures and video training material:
+          </p>
+          <ul class="steps-list">
+            <li class="step-item">Click <strong>Instruction Videos</strong> (SOP) in the sidebar.</li>
+            <li class="step-item">Browse the video library: videos assigned to "All Members" or specifically targeted to your account will be visible.</li>
+            <li class="step-item">Click on any video card to play directly in the embedded video player.</li>
+            <li class="step-item">Mark completed videos to help your manager track your technical training achievements.</li>
+          </ul>
+        </div>
+
+        <!-- How to post on message board -->
+        <div class="guide-card member-card" id="member-messages" data-role="member" data-keywords="messages board chat broadcast announcements discuss team feed">
+          <div class="card-header">
+            <h3 class="card-title">How to Use the Team Message Board</h3>
+            <div class="card-tags">
+              <span class="tag tag-member">Member</span>
+            </div>
+          </div>
+          <p class="card-desc">
+            Communicate asynchronously with your teammates and read important organization announcements:
+          </p>
+          <ul class="steps-list">
+            <li class="step-item">Select <strong>Message Board</strong> (HQ) in the sidebar.</li>
+            <li class="step-item">Review pinned announcements and important system alerts from administrators at the top of the feed.</li>
+            <li class="step-item">Type a new message or update in the composer at the top, select priority tags if needed, and hit <strong>Post Message</strong>.</li>
+            <li class="step-item">Reply to teammates' messages by clicking <strong>Reply</strong> to keep discussions organized.</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- ================= SECTION: ADMIN HOW-TOS ================= -->
+      <section class="guide-section" id="admin-overview">
+        <h2 class="section-title">
+          <span>🛡️ Admin & Manager How-To Guides</span>
+          <span class="badge tag-admin">For Admins</span>
+        </h2>
+
+        <!-- Admin Overview -->
+        <div class="guide-card admin-card" data-role="admin" data-keywords="admin overview management kpi metrics activity logs system health live status">
+          <div class="card-header">
+            <h3 class="card-title">How to Monitor the Admin Overview Dashboard</h3>
+            <div class="card-tags">
+              <span class="tag tag-admin">Admin & Manager</span>
+            </div>
+          </div>
+          <p class="card-desc">
+            The executive dashboard provides high-level transparency into all operations:
+          </p>
+          <ul class="steps-list">
+            <li class="step-item">Click <strong>Admin Overview</strong> (or Management Overview) in the sidebar.</li>
+            <li class="step-item">Review KPI Cards: Total Active Projects, Open Tasks, Total Team Size, and Hours Logged this cycle.</li>
+            <li class="step-item">Examine the <strong>Recent Activity Stream</strong> to see who created tasks, updated statuses, or completed onboarding.</li>
+            <li class="step-item">Click any quick link in the right rail to jump immediately into project creation or team audit logs.</li>
+          </ul>
+        </div>
+
+        <!-- Projects Directory -->
+        <div class="guide-card admin-card" id="admin-projects" data-role="admin" data-keywords="projects create new project directory edit delete archive sync status health">
+          <div class="card-header">
+            <h3 class="card-title">How to Create and Manage Enterprise Projects</h3>
+            <div class="card-tags">
+              <span class="tag tag-admin">Admin & Manager</span>
+            </div>
+          </div>
+          <p class="card-desc">
+            Projects form the foundation of workflows, assigning teams, tasks, and budgets:
+          </p>
+          <ul class="steps-list">
+            <li class="step-item">Navigate to <strong>Projects</strong> in the sidebar.</li>
+            <li class="step-item">Click the <strong>+ New Project</strong> button at the top right.</li>
+            <li class="step-item">Fill out the project details:
+              <ul style="padding-left: 20px; margin-top: 6px;">
+                <li><strong>Project Name & Key:</strong> e.g., "OmniChannel E-Commerce", key "OMNI"</li>
+                <li><strong>Accent Color:</strong> Choose a recognizable visual tag</li>
+                <li><strong>Lifecycle Stage:</strong> Discovery, In Development, QA/Testing, Production Ready</li>
+                <li><strong>Assign Team Members:</strong> Select members who will see this board in their sidebar</li>
+              </ul>
+            </li>
+            <li class="step-item">Click <strong>Create Project</strong>. The project immediately appears in both the directory and assigned members' navigation.</li>
+            <li class="step-item">To edit an existing project, click the <strong>⋯ (More Actions)</strong> menu on its card and select <strong>Edit Project</strong>.</li>
+          </ul>
+        </div>
+
+        <!-- Creating Tasks with XP -->
+        <div class="guide-card admin-card" id="admin-tasks" data-role="admin" data-keywords="create task modal assign xp reward experience points priority due date">
+          <div class="card-header">
+            <h3 class="card-title">How to Create Tasks & Assign XP Rewards</h3>
+            <div class="card-tags">
+              <span class="tag tag-admin">Admin</span>
+            </div>
+          </div>
+          <p class="card-desc">
+            Incentivize top performance by configuring tasks with automated XP rewards:
+          </p>
+          <ul class="steps-list">
+            <li class="step-item">Open any project board, or click the <strong>+ Add Task</strong> button on the task table.</li>
+            <li class="step-item">Enter the <strong>Task Title</strong> and detailed requirements in the description editor.</li>
+            <li class="step-item">Assign one or more <strong>Team Members</strong> from the directory dropdown.</li>
+            <li class="step-item">Set the <strong>Priority Level</strong> (Low, Medium, High, Urgent) and <strong>Due Date</strong>.</li>
+            <li class="step-item">Specify the <strong>Completion XP Reward</strong> (e.g. 50 XP, 100 XP, 250 XP).</li>
+            <li class="step-item">Click <strong>Save Task</strong>. When the assignee finishes the task, their user level automatically levels up!</li>
+          </ul>
+        </div>
+
+        <!-- Team Directory & Member Deactivation -->
+        <div class="guide-card admin-card" id="admin-team" data-role="admin" data-keywords="team directory add member deactivate delete remove permissions role rbac">
+          <div class="card-header">
+            <h3 class="card-title">How to Add, Deactivate, or Delete Team Members</h3>
+            <div class="card-tags">
+              <span class="tag tag-admin">Admin Exclusive</span>
+            </div>
+          </div>
+          <p class="card-desc">
+            Admins have full Role-Based Access Control (RBAC) governance over team accounts:
+          </p>
+          <ul class="steps-list">
+            <li class="step-item">Click <strong>Team Directory</strong> in the sidebar (Managers have read-only view; Admins have write permissions).</li>
+            <li class="step-item"><strong>Adding a Member:</strong> Click <strong>+ Add Member</strong>, enter their Full Name, Email, Temporary Password, Department, and Designation.</li>
+            <li class="step-item"><strong>Deactivating a Member:</strong> Click the <strong>Deactivate</strong> button on any active member card. Their status changes to inactive, and their record is safely moved to the <strong>Recovery Vault</strong> to prevent accidental data loss.</li>
+            <li class="step-item"><strong>Permanent Deletion:</strong> If a member record was created by error, click <strong>Delete</strong> and confirm the security prompt.</li>
+          </ul>
+          <div class="callout callout-warning">
+            <span class="callout-icon">⚠️</span>
+            <div><strong>Security Rule:</strong> Managers can view the directory but are prevented by RBAC server guards from deleting or deactivating members.</div>
+          </div>
+        </div>
+
+        <!-- Recovery Vault & Restores -->
+        <div class="guide-card admin-card" id="admin-vault" data-role="admin" data-keywords="recovery vault restore deactivated members audit trail undo delete">
+          <div class="card-header">
+            <h3 class="card-title">How to Restore Members from the Recovery Vault</h3>
+            <div class="card-tags">
+              <span class="tag tag-admin">Admin Exclusive</span>
+            </div>
+          </div>
+          <p class="card-desc">
+            Never worry about accidental deactivations with the built-in soft-delete safety vault:
+          </p>
+          <ul class="steps-list">
+            <li class="step-item">Click <strong>Recovery Vault</strong> in the sidebar (displays the number of deactivated members in an amber badge).</li>
+            <li class="step-item">Review the list of deactivated accounts, showing original role, deactivation date, and email.</li>
+            <li class="step-item">Click <strong>Restore Member</strong> on the respective account.</li>
+            <li class="step-item">The member account is instantly reactivated, restoring their project access, task history, and XP leaderboard position without data loss.</li>
+          </ul>
+        </div>
+
+        <!-- Broadcast Notices -->
+        <div class="guide-card admin-card" id="admin-notices" data-role="admin" data-keywords="important notice modal broadcast alert banner urgency sticky notify">
+          <div class="card-header">
+            <h3 class="card-title">How to Broadcast Urgent Organization Notices</h3>
+            <div class="card-tags">
+              <span class="tag tag-admin">Admin</span>
+            </div>
+          </div>
+          <p class="card-desc">
+            Broadcast mission-critical updates that require immediate acknowledgement by all staff:
+          </p>
+          <ul class="steps-list">
+            <li class="step-item">In the top navbar or sidebar, click the <strong>Broadcast Notice</strong> or Megaphone icon.</li>
+            <li class="step-item">Enter the Notice Headline, Notice Body text, and Urgency Level (Normal, High Priority, Urgent/Critical).</li>
+            <li class="step-item">Click <strong>Publish Notice</strong>.</li>
+            <li class="step-item">The modal or banner displays automatically for all signed-in users on their next action, ensuring zero missed communications.</li>
+          </ul>
+        </div>
+
+        <!-- Languages & Custom Packs -->
+        <div class="guide-card admin-card" id="admin-languages" data-role="admin" data-keywords="language swedish english json upload custom localization i18n">
+          <div class="card-header">
+            <h3 class="card-title">How to Switch Languages or Upload Custom Language Packs</h3>
+            <div class="card-tags">
+              <span class="tag tag-admin">Admin & Manager</span>
+            </div>
+          </div>
+          <p class="card-desc">
+            ApexBoard supports international teams with modular JSON translation dictionaries:
+          </p>
+          <ul class="steps-list">
+            <li class="step-item">Locate the <strong>Language selector</strong> at the bottom of the sidebar.</li>
+            <li class="step-item">To switch between built-in languages, select <strong>English</strong> or <strong>Svenska (Swedish)</strong> from the dropdown. All UI strings adapt in real time.</li>
+            <li class="step-item"><strong>Uploading a Custom Language JSON:</strong> Admins can click <strong>Upload Custom JSON</strong> to upload a localized dictionary (e.g. German, French, Spanish). The app validates the keys and activates the new language instantly!</li>
+          </ul>
+        </div>
+
+        <!-- Deployment Automation -->
+        <div class="guide-card admin-card" id="admin-deploy" data-role="admin" data-keywords="deploy deployment netlify render github sync automated terminal command git">
+          <div class="card-header">
+            <h3 class="card-title">How to Deploy Live Updates in 1 Click</h3>
+            <div class="card-tags">
+              <span class="tag tag-admin">DevOps & Admin</span>
+            </div>
+          </div>
+          <p class="card-desc">
+            ApexBoard includes a fully automated deployment pipeline. When you are ready to publish code or database updates live:
+          </p>
+          <div class="code-block">
+            <span>npm run deploy</span>
+            <button class="copy-btn" onclick="copyCode('npm run deploy')">Copy</button>
+          </div>
+          <p class="card-desc" style="font-size: 13px; margin-top: 8px;">
+            <strong>What happens under the hood:</strong>
+          </p>
+          <ul class="steps-list">
+            <li class="step-item">Automatically commits changes and pushes to GitHub repository main branch.</li>
+            <li class="step-item">Builds the optimized production client bundle with Vite.</li>
+            <li class="step-item">Publishes directly to live Netlify CDN (https://bizproject-80307.netlify.app).</li>
+            <li class="step-item">Performs automatic live health check on Render backend (https://bizproject-api.onrender.com).</li>
+          </ul>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <script>
+    // Copy code helper
+    function copyCode(text) {
+      navigator.clipboard.writeText(text).then(() => {
+        alert('Copied to clipboard: ' + text);
+      }).catch(err => {
+        console.error('Failed to copy', err);
+      });
+    }
+
+    // Role filtering state
+    let currentRoleFilter = 'all';
+
+    function filterByRole(role) {
+      currentRoleFilter = role;
+
+      // Update button active state
+      document.querySelectorAll('.role-btn').forEach(btn => btn.classList.remove('active'));
+      const activeBtn = document.getElementById('btn-filter-' + role);
+      if (activeBtn) activeBtn.classList.add('active');
+
+      applyFilters();
+    }
+
+    // Keyword Search
+    function handleSearch(query) {
+      applyFilters();
+    }
+
+    function clearSearch() {
+      const input = document.getElementById('search-input');
+      input.value = '';
+      applyFilters();
+    }
+
+    // Combined Filter Handler
+    function applyFilters() {
+      const searchInput = document.getElementById('search-input');
+      const rawQuery = (searchInput.value || '').trim().toLowerCase();
+      const searchAlert = document.getElementById('search-alert');
+      const searchResultsText = document.getElementById('search-results-text');
+      const noResults = document.getElementById('no-results');
+
+      const cards = document.querySelectorAll('.guide-card');
+      let visibleCount = 0;
+
+      cards.forEach(card => {
+        const cardRole = card.getAttribute('data-role') || 'all';
+        const keywords = (card.getAttribute('data-keywords') || '').toLowerCase();
+        const textContent = card.innerText.toLowerCase();
+
+        // 1. Role match check
+        const roleMatches = (currentRoleFilter === 'all') || 
+                            (cardRole === 'all') || 
+                            (cardRole === currentRoleFilter);
+
+        // 2. Search query match check
+        let queryMatches = true;
+        if (rawQuery.length > 0) {
+          const queryTokens = rawQuery.split(/\s+/).filter(t => t.length > 0);
+          queryMatches = queryTokens.every(token => 
+            textContent.includes(token) || keywords.includes(token)
+          );
+        }
+
+        if (roleMatches && queryMatches) {
+          card.style.display = 'block';
+          visibleCount++;
+        } else {
+          card.style.display = 'none';
+        }
+      });
+
+      // Update section headers visibility
+      document.querySelectorAll('.guide-section').forEach(sec => {
+        const visibleChildCards = sec.querySelectorAll('.guide-card[style*="display: block"]');
+        if (visibleChildCards.length === 0 && (rawQuery.length > 0 || currentRoleFilter !== 'all')) {
+          sec.style.display = 'none';
+        } else {
+          sec.style.display = 'block';
+        }
+      });
+
+      // Search alert indicator
+      if (rawQuery.length > 0 || currentRoleFilter !== 'all') {
+        searchAlert.style.display = 'flex';
+        let filterDesc = '';
+        if (currentRoleFilter !== 'all') {
+          filterDesc += 'Role: ' + currentRoleFilter.toUpperCase() + ' ';
+        }
+        if (rawQuery.length > 0) {
+          filterDesc += 'Keyword: "' + rawQuery + '" ';
+        }
+        searchResultsText.textContent = `Found ${visibleCount} guide(s) matching (${filterDesc.trim()})`;
+      } else {
+        searchAlert.style.display = 'none';
+      }
+
+      // No results check
+      if (visibleCount === 0) {
+        noResults.style.display = 'block';
+      } else {
+        noResults.style.display = 'none';
+      }
+    }
+
+    // Keyboard shortcut (Ctrl+K or Cmd+K) to focus search
+    window.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        triggerProblemSearch();
+      }
+    });
+
+    function triggerProblemSearch() {
+      const input = document.getElementById('search-input');
+      if (input) {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        input.focus();
+        input.select();
+        input.style.borderColor = '#10b981';
+        input.style.boxShadow = '0 0 0 4px rgba(16, 185, 129, 0.25)';
+        setTimeout(() => {
+          input.style.borderColor = '';
+          input.style.boxShadow = '';
+        }, 1500);
+      }
+    }
+
+    // Check URL hash or param on load
+    window.addEventListener('DOMContentLoaded', () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const roleParam = urlParams.get('role');
+      if (roleParam && ['member', 'admin'].includes(roleParam.toLowerCase())) {
+        filterByRole(roleParam.toLowerCase());
+      }
+
+      const searchParam = urlParams.get('search') || urlParams.get('q') || urlParams.get('problem');
+      if (searchParam) {
+        const input = document.getElementById('search-input');
+        if (input) {
+          input.value = decodeURIComponent(searchParam);
+          applyFilters();
+        }
+      }
+    });
+  </script>
+
+  <!-- Floating Help & Problem Solver at bottom-left corner of guide page -->
+  <button 
+    class="floating-help-corner" 
+    onclick="triggerProblemSearch()" 
+    title="Click to write your problem and find steps"
+    style="
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(15, 23, 42, 0.95);
+      color: #ffffff;
+      padding: 10px 16px;
+      border-radius: 999px;
+      border: 1px solid rgba(51, 65, 85, 0.8);
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+      cursor: pointer;
+      backdrop-filter: blur(8px);
+      transition: all 0.2s ease;
+      font-size: 13px;
+      font-weight: 600;
+      font-family: inherit;
+    "
+  >
+    <span style="position: relative; display: flex; width: 10px; height: 10px;">
+      <span style="position: absolute; width: 100%; height: 100%; border-radius: 50%; background: #34d399; opacity: 0.75; animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;"></span>
+      <span style="position: relative; width: 100%; height: 100%; border-radius: 50%; background: #10b981;"></span>
+    </span>
+    <span>❓ Write Problem / Guide</span>
+    <span style="font-size: 10px; background: #064e3b; color: #6ee7b7; padding: 2px 6px; border-radius: 4px; border: 1px solid #047857;">Steps</span>
+  </button>
+</body>
+</html>

@@ -1,5 +1,7 @@
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 const fs = require('fs');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
@@ -13,15 +15,123 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET || 'apexboard_super_secret_jwt_key_2026';
 
-app.use(cors());
-app.use(express.json({ limit: '100mb' }));
-app.use(express.urlencoded({ extended: true, limit: '100mb' }));
+if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
+  console.warn('[SECURITY WARNING] JWT_SECRET is not explicitly defined in production environment variables! Using default fallback.');
+}
+
+// 1. Security HTTP Headers
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' }
+}));
+
+// 2. Restricted Origin CORS
+const defaultAllowedOrigins = [
+  'https://bizproject-80307.netlify.app',
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'http://localhost:5000',
+  'http://localhost:5001'
+];
+const rawOrigins = process.env.ALLOWED_ORIGINS;
+const allowedOrigins = rawOrigins ? rawOrigins.split(',').map(s => s.trim()) : defaultAllowedOrigins;
+
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error(`CORS policy violation: Origin ${origin} not permitted`));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-user-role', 'x-actor-name', 'X-Requested-With']
+}));
+
+// 3. Body limits (25MB max to prevent memory exhaustion DoS)
+app.use(express.json({ limit: '25mb' }));
+app.use(express.urlencoded({ extended: true, limit: '25mb' }));
+
+// 4. Rate Limiters
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  message: { error: 'Too many authentication attempts. Please try again after 15 minutes.' },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+const uploadLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 60,
+  message: { error: 'Upload rate limit reached. Please wait before uploading again.' },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+// 5. Authentication & Authorization Middlewares
+function requireAuth(req, res, next) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Unauthorized: Missing or malformed authentication token' });
+  }
+
+  const token = authHeader.split(' ')[1];
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    req.user = decoded;
+    next();
+  } catch (err) {
+    return res.status(401).json({ error: 'Unauthorized: Invalid or expired token' });
+  }
+}
+
+function optionalAuth(req, res, next) {
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.split(' ')[1];
+    try {
+      req.user = jwt.verify(token, JWT_SECRET);
+    } catch (e) {
+      // Ignored for optional
+    }
+  }
+  next();
+}
+
+function requireRole(allowedRoles = []) {
+  return (req, res, next) => {
+    if (!req.user || !allowedRoles.includes(req.user.role)) {
+      return res.status(403).json({ error: 'Forbidden: Insufficient permissions for this action' });
+    }
+    next();
+  };
+}
+
+const cloudinary = require('cloudinary').v2;
+
+// Configure Cloudinary if credentials exist in environment
+if (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET) {
+  cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+    secure: true
+  });
+  console.log('[Storage] Cloudinary initialized successfully with cloud:', process.env.CLOUDINARY_CLOUD_NAME);
+} else {
+  console.log('[Storage] Cloudinary credentials not detected in .env. Using optimized local/direct storage fallback.');
+}
 
 // Ensure uploads directory exists and is statically accessible
 const uploadsDir = path.join(__dirname, '../uploads');
 const videosUploadDir = path.join(uploadsDir, 'videos');
+const avatarsUploadDir = path.join(uploadsDir, 'avatars');
+const reportsUploadDir = path.join(uploadsDir, 'reports');
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 if (!fs.existsSync(videosUploadDir)) fs.mkdirSync(videosUploadDir, { recursive: true });
+if (!fs.existsSync(avatarsUploadDir)) fs.mkdirSync(avatarsUploadDir, { recursive: true });
+if (!fs.existsSync(reportsUploadDir)) fs.mkdirSync(reportsUploadDir, { recursive: true });
 app.use('/uploads', express.static(uploadsDir));
 
 // Initialize DB and Seed
@@ -187,7 +297,7 @@ app.get('/api/auth/me', async (req, res) => {
 });
 
 // Register with email & password
-app.post('/api/auth/register', async (req, res) => {
+app.post('/api/auth/register', authLimiter, async (req, res) => {
   try {
     const { full_name, email, password, department = 'Engineering', designation = 'Team Member' } = req.body;
     if (!full_name || !email || !password) {
@@ -210,11 +320,14 @@ app.post('/api/auth/register', async (req, res) => {
 
     await query(`
       INSERT INTO users (id, email, password_hash, full_name, avatar_url, role, department, designation, auth_provider, join_date, status, onboarding_progress)
-      VALUES (?, ?, ?, ?, ?, 'member', ?, ?, 'local', ?, 'active', 100)
+      VALUES (?, ?, ?, ?, ?, 'team', ?, ?, 'local', ?, 'active', 0)
     `, [userId, email.toLowerCase().trim(), password_hash, full_name, avatarUrl, department, designation, joinDate]);
 
+    // Automatically clone the common onboarding tasks for any new user
+    await assignCommonOnboardingTasksToUser(userId);
+
     // Create token
-    const token = jwt.sign({ id: userId, email: email.toLowerCase().trim(), role: 'member' }, JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign({ id: userId, email: email.toLowerCase().trim(), role: 'team' }, JWT_SECRET, { expiresIn: '7d' });
 
     // Universal Audit Log
     await logActivity({
@@ -234,7 +347,7 @@ app.post('/api/auth/register', async (req, res) => {
 });
 
 // Login with email & password
-app.post('/api/auth/login', async (req, res) => {
+app.post('/api/auth/login', authLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) {
@@ -288,7 +401,7 @@ app.post('/api/auth/login', async (req, res) => {
 });
 
 // Forgot / Reset Password
-app.post('/api/auth/forgot-password', async (req, res) => {
+app.post('/api/auth/forgot-password', authLimiter, async (req, res) => {
   try {
     const { email, new_password } = req.body;
     if (!email || !new_password) {
@@ -323,7 +436,7 @@ app.post('/api/auth/forgot-password', async (req, res) => {
 });
 
 // Social Login / Registration (Google, Facebook, Twitter, GitHub, LinkedIn)
-app.post('/api/auth/social', async (req, res) => {
+app.post('/api/auth/social', authLimiter, async (req, res) => {
   try {
     const { provider, email, full_name, avatar_url, provider_id } = req.body;
     const validProviders = ['google', 'facebook', 'twitter', 'github', 'linkedin'];
@@ -352,8 +465,11 @@ app.post('/api/auth/social', async (req, res) => {
 
       await query(`
         INSERT INTO users (id, email, full_name, avatar_url, role, department, designation, auth_provider, auth_provider_id, join_date, status, onboarding_progress)
-        VALUES (?, ?, ?, ?, 'member', 'General', 'Team Member', ?, ?, ?, 'active', 100)
+        VALUES (?, ?, ?, ?, 'team', 'General', 'Team Member', ?, ?, ?, 'active', 0)
       `, [userId, cleanEmail, cleanName, cleanAvatar, provider, provider_id || cleanEmail, joinDate]);
+
+      // Automatically clone the common onboarding tasks for any new user
+      await assignCommonOnboardingTasksToUser(userId);
 
       user = await getOne('SELECT * FROM users WHERE id = ?', [userId]);
     }
@@ -427,7 +543,7 @@ app.get('/api/logs', async (req, res) => {
 });
 
 // --- 4. USERS & ONBOARDING ---
-app.get('/api/users', async (req, res) => {
+app.get('/api/users', optionalAuth, async (req, res) => {
   try {
     const { include_deactivated } = req.query;
     let sql = 'SELECT * FROM users';
@@ -437,10 +553,13 @@ app.get('/api/users', async (req, res) => {
     sql += ' ORDER BY created_at DESC';
 
     const users = await query(sql);
-    const parsed = users.map(u => ({
-      ...u,
-      skills: u.skills ? JSON.parse(u.skills) : []
-    }));
+    const parsed = users.map(u => {
+      const { password_hash, ...safeUser } = u;
+      return {
+        ...safeUser,
+        skills: safeUser.skills ? (typeof safeUser.skills === 'string' ? JSON.parse(safeUser.skills) : safeUser.skills) : []
+      };
+    });
     res.json(parsed);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -450,6 +569,11 @@ app.get('/api/users', async (req, res) => {
 // Create/Onboard new employee
 app.post('/api/users/onboard', async (req, res) => {
   try {
+    const callerRole = req.headers['x-user-role'];
+    if (callerRole === 'manager') {
+      return res.status(403).json({ error: 'Permission denied: Managers are not authorized to add or onboard new members.' });
+    }
+
     const {
       full_name,
       email,
@@ -490,24 +614,17 @@ app.post('/api/users/onboard', async (req, res) => {
       0
     ]);
 
-    // Create default onboarding checklist with gamified reward XP
-    const defaultChecklists = [
-      { title: 'Personal and emergency contact information verification', category: 'HR', xp: 30 },
-      { title: 'Sign employment agreement and company policies', category: 'Legal & HR', xp: 40 },
-      { title: 'Setup company credentials, Google Workspace & 2FA', category: 'IT Security', xp: 50 },
-      { title: 'Schedule 1-on-1 welcome session with mentor & manager', category: 'Team & Culture', xp: 35 },
-      { title: 'Configure workstation tools & software licenses', category: 'IT & Dev', xp: 45 },
-      { title: 'Review company mission, project roadmap & team workflows', category: 'Training', xp: 50 }
-    ];
-
-    const tasksToInsert = custom_checklists.length > 0 ? custom_checklists : defaultChecklists;
-
-    for (const t of tasksToInsert) {
-      const taskXp = t.xp || t.xp_reward || 35;
-      await query(`
-        INSERT INTO onboarding_tasks (id, user_id, title, category, is_completed, due_date, xp_reward)
-        VALUES (?, ?, ?, ?, 0, ?, ?)
-      `, [uuidv4(), userId, t.title || t, t.category || 'General', '2026-10-15', taskXp]);
+    // Create onboarding checklist (use custom checklist if provided, or clone common tasks template)
+    if (custom_checklists.length > 0) {
+      for (const t of custom_checklists) {
+        const taskXp = t.xp || t.xp_reward || 35;
+        await query(`
+          INSERT INTO onboarding_tasks (id, user_id, title, category, is_completed, due_date, xp_reward, xp_claimed, approval_status, created_by)
+          VALUES (?, ?, ?, ?, 0, ?, ?, 0, 'pending', 'admin')
+        `, [uuidv4(), userId, t.title || t, t.category || 'General', '2026-10-15', taskXp]);
+      }
+    } else {
+      await assignCommonOnboardingTasksToUser(userId);
     }
 
     // Universal Audit Log
@@ -533,7 +650,15 @@ app.post('/api/users/onboard', async (req, res) => {
 // Update user details
 app.put('/api/users/:id', async (req, res) => {
   try {
-    const { full_name, role, department, designation, phone, location, status, skills, actor_name = 'Admin' } = req.body;
+    const { full_name, role, department, designation, phone, location, status, skills, xp, level, avatar_url, name_reward_claimed, actor_name = 'Admin' } = req.body;
+    
+    let finalXp = xp;
+    let finalLevel = level;
+    if (xp !== undefined && xp !== null) {
+      const lvlInfo = getLevelInfo(xp);
+      finalLevel = lvlInfo.level;
+    }
+
     await query(`
       UPDATE users
       SET full_name = COALESCE(?, full_name),
@@ -544,11 +669,19 @@ app.put('/api/users/:id', async (req, res) => {
           location = COALESCE(?, location),
           status = COALESCE(?, status),
           skills = COALESCE(?, skills),
+          xp = COALESCE(?, xp),
+          level = COALESCE(?, level),
+          avatar_url = COALESCE(?, avatar_url),
+          name_reward_claimed = COALESCE(?, name_reward_claimed),
           updated_at = datetime('now')
       WHERE id = ?
     `, [
       full_name, role, department, designation, phone, location, status,
       skills ? JSON.stringify(skills) : null,
+      finalXp !== undefined ? finalXp : null,
+      finalLevel !== undefined ? finalLevel : null,
+      avatar_url,
+      name_reward_claimed !== undefined ? Number(name_reward_claimed) : null,
       req.params.id
     ]);
 
@@ -567,9 +700,159 @@ app.put('/api/users/:id', async (req, res) => {
   }
 });
 
+// Upload or update member avatar photo
+app.post('/api/users/:id/avatar', async (req, res) => {
+  try {
+    const { avatar_data, avatar_url, actor_name } = req.body;
+    const userId = req.params.id;
+
+    const user = await getOne('SELECT id, full_name, role FROM users WHERE id = ?', [userId]);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    let finalAvatarUrl = avatar_url;
+
+    // 1. If Cloudinary is configured, prefer uploading avatar directly to Cloudinary CDN
+    if (avatar_data && typeof avatar_data === 'string' && avatar_data.startsWith('data:image/') &&
+        process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET) {
+      try {
+        const cloudUpload = await cloudinary.uploader.upload(avatar_data, {
+          folder: 'bizproject/avatars',
+          transformation: [
+            { width: 320, height: 320, crop: 'fill', gravity: 'face' },
+            { quality: 'auto:good' },
+            { fetch_format: 'auto' }
+          ]
+        });
+        finalAvatarUrl = cloudUpload.secure_url;
+      } catch (cloudErr) {
+        console.warn('[Avatar] Cloudinary avatar upload failed, falling back to local/dataURL:', cloudErr.message);
+      }
+    }
+
+    // 2. Fallback to local disk or data URL
+    if (!finalAvatarUrl && avatar_data && typeof avatar_data === 'string' && avatar_data.startsWith('data:image/')) {
+      try {
+        const matches = avatar_data.match(/^data:image\/([A-Za-z0-9-+]+);base64,(.+)$/);
+        if (matches) {
+          const ext = matches[1] === 'jpeg' ? 'jpg' : matches[1];
+          const base64Data = matches[2];
+          const buffer = Buffer.from(base64Data, 'base64');
+          
+          const filename = `avatar_${userId}_${Date.now()}.${ext}`;
+          const filePath = path.join(avatarsUploadDir, filename);
+          fs.writeFileSync(filePath, buffer);
+          
+          // If data is under 150KB, keep data URL so it displays anywhere even without persistent backend storage
+          finalAvatarUrl = avatar_data.length < 150000 ? avatar_data : `/uploads/avatars/${filename}`;
+        }
+      } catch (fileErr) {
+        console.warn('Failed to write avatar file to disk, storing data URL directly:', fileErr);
+        finalAvatarUrl = avatar_data;
+      }
+    } else if (!finalAvatarUrl && avatar_data && typeof avatar_data === 'string') {
+      finalAvatarUrl = avatar_data;
+    }
+
+    if (!finalAvatarUrl) {
+      return res.status(400).json({ error: 'No avatar image data or URL provided' });
+    }
+
+    await query(`
+      UPDATE users
+      SET avatar_url = ?, updated_at = datetime('now')
+      WHERE id = ?
+    `, [finalAvatarUrl, userId]);
+
+    await logActivity({
+      entity_type: 'user',
+      entity_id: userId,
+      user_name: actor_name || user.full_name || 'Member',
+      action: 'USER_AVATAR_UPDATED',
+      details: `Updated member profile image for ${user.full_name}`
+    });
+
+    const updatedUser = await getOne('SELECT id, email, full_name, avatar_url, role, department, designation, phone, location, skills, status, onboarding_progress, xp, level FROM users WHERE id = ?', [userId]);
+
+    res.json({ success: true, user: updatedUser, avatar_url: finalAvatarUrl });
+  } catch (err) {
+    console.error('Error updating member avatar:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Generic Image Upload endpoint (for heavy reporting, visual QC evidence, tasks, avatars)
+// Automatically uploads to Cloudinary CDN if credentials exist, or saves to /uploads/reports
+app.post('/api/upload/image', uploadLimiter, async (req, res) => {
+  try {
+    const { image_data, folder = 'reports' } = req.body;
+    if (!image_data) {
+      return res.status(400).json({ error: 'No image data provided' });
+    }
+
+    // 1. If Cloudinary is configured, upload to Cloudinary
+    if (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET) {
+      try {
+        const uploadResponse = await cloudinary.uploader.upload(image_data, {
+          folder: `bizproject/${folder}`,
+          resource_type: 'image',
+          transformation: [
+            { quality: 'auto:good' },
+            { fetch_format: 'auto' }
+          ]
+        });
+
+        return res.json({
+          url: uploadResponse.secure_url,
+          public_id: uploadResponse.public_id,
+          format: uploadResponse.format,
+          bytes: uploadResponse.bytes,
+          storage: 'cloudinary'
+        });
+      } catch (cloudErr) {
+        console.warn('[Storage] Cloudinary upload failed, falling back to local storage:', cloudErr.message);
+      }
+    }
+
+    // 2. Fallback: Save to local reports folder or return optimized data URL
+    if (typeof image_data === 'string' && image_data.startsWith('data:image/')) {
+      const matches = image_data.match(/^data:image\/([A-Za-z0-9-+]+);base64,(.+)$/);
+      if (matches) {
+        const ext = matches[1] === 'jpeg' ? 'jpg' : matches[1];
+        const base64Content = matches[2];
+        const filename = `report_${Date.now()}_${uuidv4().slice(0, 8)}.${ext}`;
+        const filePath = path.join(reportsUploadDir, filename);
+        fs.writeFileSync(filePath, Buffer.from(base64Content, 'base64'));
+
+        const localUrl = `/uploads/reports/${filename}`;
+        return res.json({
+          url: localUrl,
+          filename,
+          storage: 'local'
+        });
+      }
+    }
+
+    // 3. Fallback: if already a URL or raw string
+    return res.json({
+      url: image_data,
+      storage: 'direct'
+    });
+  } catch (err) {
+    console.error('Error uploading image:', err);
+    res.status(500).json({ error: err.message || 'Image upload failed' });
+  }
+});
+
 // Soft-Delete (Deactivate) or Reactivate a member
 app.patch('/api/users/:id/status', async (req, res) => {
   try {
+    const callerRole = req.headers['x-user-role'];
+    if (callerRole === 'manager') {
+      return res.status(403).json({ error: 'Permission denied: Managers are not authorized to deactivate or modify member status.' });
+    }
+
     const { status, actor_name = 'Admin' } = req.body; // 'active', 'deactivated', 'suspended'
     if (!status) return res.status(400).json({ error: 'Status is required' });
 
@@ -596,8 +879,13 @@ app.patch('/api/users/:id/status', async (req, res) => {
 });
 
 // Permanent Delete a member
-app.delete('/api/users/:id', async (req, res) => {
+app.delete('/api/users/:id', optionalAuth, async (req, res) => {
   try {
+    const callerRole = (req.user && req.user.role) || req.headers['x-user-role'];
+    if (callerRole !== 'admin') {
+      return res.status(403).json({ error: 'Permission denied: Only administrators are authorized to permanently delete members.' });
+    }
+
     const actor_name = req.query.actor_name || 'Admin';
     const user = await getOne('SELECT * FROM users WHERE id = ?', [req.params.id]);
     if (!user) return res.status(404).json({ error: 'User not found' });
@@ -632,7 +920,7 @@ app.get('/api/users/:id/onboarding', async (req, res) => {
 // Assign a new onboarding task to an employee with custom reward XP
 app.post('/api/users/:id/onboarding', async (req, res) => {
   try {
-    const { title, category = 'General', xp_reward = 35, due_date, actor_name = 'Admin' } = req.body;
+    const { title, category = 'General', xp_reward = 35, due_date, actor_name = 'Admin', created_by = 'admin' } = req.body;
     if (!title || !title.trim()) {
       return res.status(400).json({ error: 'Task title is required' });
     }
@@ -643,11 +931,12 @@ app.post('/api/users/:id/onboarding', async (req, res) => {
     const taskId = 'ot_' + uuidv4().substring(0, 8);
     const dueDateToUse = due_date || new Date(Date.now() + 7 * 86400000).toISOString().substring(0, 10);
     const rewardToUse = Number(xp_reward) || 35;
+    const taskCreator = created_by || 'admin';
 
     await query(`
-      INSERT INTO onboarding_tasks (id, user_id, title, category, is_completed, due_date, xp_reward)
-      VALUES (?, ?, ?, ?, 0, ?, ?)
-    `, [taskId, user.id, title.trim(), category, dueDateToUse, rewardToUse]);
+      INSERT INTO onboarding_tasks (id, user_id, title, category, is_completed, due_date, xp_reward, xp_claimed, approval_status, created_by)
+      VALUES (?, ?, ?, ?, 0, ?, ?, 0, 'pending', ?)
+    `, [taskId, user.id, title.trim(), category, dueDateToUse, rewardToUse, taskCreator]);
 
     // Recalculate user onboarding progress
     const allTasks = await query('SELECT count(*) as total, sum(is_completed) as completed FROM onboarding_tasks WHERE user_id = ?', [user.id]);
@@ -668,6 +957,43 @@ app.post('/api/users/:id/onboarding', async (req, res) => {
 
     const created = await getOne('SELECT * FROM onboarding_tasks WHERE id = ?', [taskId]);
     res.status(201).json(created);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Update an onboarding task title/category/due_date/xp_reward (members or admins editing tasks)
+app.put('/api/onboarding/:taskId', async (req, res) => {
+  try {
+    const { title, category, xp_reward, due_date, actor_name = 'Member' } = req.body;
+    const task = await getOne('SELECT * FROM onboarding_tasks WHERE id = ?', [req.params.taskId]);
+    if (!task) return res.status(404).json({ error: 'Task not found' });
+
+    await query(`
+      UPDATE onboarding_tasks
+      SET title = COALESCE(?, title),
+          category = COALESCE(?, category),
+          xp_reward = COALESCE(?, xp_reward),
+          due_date = COALESCE(?, due_date)
+      WHERE id = ?
+    `, [
+      title ? title.trim() : null,
+      category || null,
+      xp_reward !== undefined ? Number(xp_reward) : null,
+      due_date || null,
+      task.id
+    ]);
+
+    await logActivity({
+      entity_type: 'onboarding',
+      entity_id: task.id,
+      user_name: actor_name,
+      action: 'ONBOARDING_TASK_EDITED',
+      details: `Edited onboarding checklist task "${title || task.title}"`
+    });
+
+    const updated = await getOne('SELECT * FROM onboarding_tasks WHERE id = ?', [task.id]);
+    res.json(updated);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -696,17 +1022,60 @@ app.delete('/api/onboarding/:taskId', async (req, res) => {
   }
 });
 
-// Toggle onboarding task completion
+// Toggle onboarding task completion / submission / admin approval
 app.put('/api/onboarding/:taskId/toggle', async (req, res) => {
   try {
-    const { actor_name = 'Admin' } = req.body;
+    const { actor_name = 'Admin', role = 'admin' } = req.body;
     const task = await getOne('SELECT * FROM onboarding_tasks WHERE id = ?', [req.params.taskId]);
     if (!task) return res.status(404).json({ error: 'Task not found' });
 
-    const newStatus = task.is_completed ? 0 : 1;
+    const isAdminOrManager = role === 'admin' || role === 'manager';
+    const isGivenByAdmin = (task.created_by || 'admin') === 'admin';
+    const hasClaimedXp = Number(task.xp_claimed) === 1;
+
+    let newStatus = task.is_completed ? 0 : 1;
+    let newApprovalStatus = task.approval_status || 'pending';
+    let xpGained = 0;
+    let requiresApproval = false;
+
+    // Check if task is being approved directly by admin
+    if (req.body.action === 'approve' && isAdminOrManager) {
+      newStatus = 1;
+      newApprovalStatus = 'approved';
+    } else if (req.body.action === 'reject' && isAdminOrManager) {
+      newStatus = 0;
+      newApprovalStatus = 'rejected';
+    } else {
+      // Normal toggle or member submission
+      if (newStatus === 1) {
+        if (!isAdminOrManager && isGivenByAdmin) {
+          // Member submitted a task given by admin:
+          // Task is submitted, but marked 'pending_approval' and XP is NOT awarded yet!
+          newApprovalStatus = 'pending_approval';
+          requiresApproval = true;
+        } else {
+          // Completed by admin, or self-task completed by member
+          newApprovalStatus = 'approved';
+        }
+      } else {
+        // Unchecked task
+        newApprovalStatus = 'pending';
+      }
+    }
+
     const completedAt = newStatus ? new Date().toISOString() : null;
 
-    await query('UPDATE onboarding_tasks SET is_completed = ?, completed_at = ? WHERE id = ?', [newStatus, completedAt, task.id]);
+    // Determine if XP should be awarded:
+    // ONLY award if marked completed AND approved AND member hasn't claimed XP yet!
+    const shouldAwardXp = (newStatus === 1) && (newApprovalStatus === 'approved') && !hasClaimedXp;
+
+    let newXpClaimed = hasClaimedXp ? 1 : (shouldAwardXp ? 1 : 0);
+
+    await query(`
+      UPDATE onboarding_tasks
+      SET is_completed = ?, completed_at = ?, approval_status = ?, xp_claimed = ?
+      WHERE id = ?
+    `, [newStatus, completedAt, newApprovalStatus, newXpClaimed, task.id]);
 
     // Recalculate user onboarding progress
     const allTasks = await query('SELECT count(*) as total, sum(is_completed) as completed FROM onboarding_tasks WHERE user_id = ?', [task.user_id]);
@@ -717,9 +1086,8 @@ app.put('/api/onboarding/:taskId/toggle', async (req, res) => {
     const userStatus = progressPercent === 100 ? 'active' : 'onboarding';
     await query('UPDATE users SET onboarding_progress = ?, status = ? WHERE id = ?', [progressPercent, userStatus, task.user_id]);
 
-    // Gamification XP Award on Onboarding Task Completion
-    let xpGained = 0;
-    if (newStatus === 1) {
+    // Award XP only once
+    if (shouldAwardXp) {
       xpGained = Number(task.xp_reward) || 35;
       if (progressPercent === 100) {
         xpGained += 150; // Bonus for graduating onboarding!
@@ -752,7 +1120,202 @@ app.put('/api/onboarding/:taskId/toggle', async (req, res) => {
       }
     }
 
-    res.json({ success: true, is_completed: newStatus, progressPercent, userStatus, xpGained });
+    const updatedTask = await getOne('SELECT * FROM onboarding_tasks WHERE id = ?', [task.id]);
+
+    res.json({
+      success: true,
+      task: updatedTask,
+      is_completed: newStatus,
+      approval_status: newApprovalStatus,
+      xp_claimed: newXpClaimed,
+      requiresApproval,
+      progressPercent,
+      userStatus,
+      xpGained
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- COMMON ONBOARDING TASKS (Common task set for any new user) ---
+
+async function assignCommonOnboardingTasksToUser(userId) {
+  try {
+    let commonTasks = await query('SELECT * FROM common_onboarding_tasks ORDER BY order_index ASC, created_at ASC');
+    if (!commonTasks || commonTasks.length === 0) {
+      const defaultCommonTasks = [
+        { id: 'cot_1', title: 'Complete personal profile and emergency contact details', category: 'HR & Profile', xp_reward: 30, order_index: 1 },
+        { id: 'cot_2', title: 'Sign employee agreement & company policy documentation', category: 'Legal & HR', xp_reward: 40, order_index: 2 },
+        { id: 'cot_3', title: 'Setup Google Workspace, 2FA credentials & password manager', category: 'IT Security', xp_reward: 50, order_index: 3 },
+        { id: 'cot_4', title: 'Schedule 1-on-1 welcome session with mentor & manager', category: 'Team & Culture', xp_reward: 35, order_index: 4 },
+        { id: 'cot_5', title: 'Configure workstation tools, software licenses & repository keys', category: 'Engineering & Dev', xp_reward: 45, order_index: 5 },
+        { id: 'cot_6', title: 'Review company mission, SOP video tutorials & team workflows', category: 'Training & SOP', xp_reward: 50, order_index: 6 }
+      ];
+      for (const cot of defaultCommonTasks) {
+        await query(`
+          INSERT INTO common_onboarding_tasks (id, title, category, xp_reward, order_index)
+          VALUES (?, ?, ?, ?, ?)
+        `, [cot.id, cot.title, cot.category, cot.xp_reward, cot.order_index]);
+      }
+      commonTasks = defaultCommonTasks;
+    }
+
+    for (const ct of commonTasks) {
+      const existing = await query('SELECT id FROM onboarding_tasks WHERE user_id = ? AND title = ?', [userId, ct.title]);
+      if (existing.length === 0) {
+        await query(`
+          INSERT INTO onboarding_tasks (id, user_id, title, category, is_completed, due_date, xp_reward, xp_claimed, approval_status, created_by)
+          VALUES (?, ?, ?, ?, 0, ?, ?, 0, 'pending', 'admin')
+        `, [uuidv4(), userId, ct.title, ct.category || 'General', '2026-10-31', Number(ct.xp_reward) || 35]);
+      }
+    }
+
+    const allTasks = await query('SELECT count(*) as total, sum(is_completed) as completed FROM onboarding_tasks WHERE user_id = ?', [userId]);
+    const total = Number(allTasks[0]?.total || 0);
+    const completed = Number(allTasks[0]?.completed || 0);
+    const progress = total > 0 ? Math.round((completed / total) * 100) : 0;
+    await query('UPDATE users SET onboarding_progress = ? WHERE id = ?', [progress, userId]);
+  } catch (err) {
+    console.error('Error assigning common onboarding tasks to user:', err);
+  }
+}
+
+// Get all common onboarding tasks
+app.get('/api/common-onboarding-tasks', async (req, res) => {
+  try {
+    let tasks = await query('SELECT * FROM common_onboarding_tasks ORDER BY order_index ASC, created_at ASC');
+    if (!tasks || tasks.length === 0) {
+      const defaultCommonTasks = [
+        { id: 'cot_1', title: 'Complete personal profile and emergency contact details', category: 'HR & Profile', xp_reward: 30, order_index: 1 },
+        { id: 'cot_2', title: 'Sign employee agreement & company policy documentation', category: 'Legal & HR', xp_reward: 40, order_index: 2 },
+        { id: 'cot_3', title: 'Setup Google Workspace, 2FA credentials & password manager', category: 'IT Security', xp_reward: 50, order_index: 3 },
+        { id: 'cot_4', title: 'Schedule 1-on-1 welcome session with mentor & manager', category: 'Team & Culture', xp_reward: 35, order_index: 4 },
+        { id: 'cot_5', title: 'Configure workstation tools, software licenses & repository keys', category: 'Engineering & Dev', xp_reward: 45, order_index: 5 },
+        { id: 'cot_6', title: 'Review company mission, SOP video tutorials & team workflows', category: 'Training & SOP', xp_reward: 50, order_index: 6 }
+      ];
+      for (const cot of defaultCommonTasks) {
+        await query(`
+          INSERT INTO common_onboarding_tasks (id, title, category, xp_reward, order_index)
+          VALUES (?, ?, ?, ?, ?)
+        `, [cot.id, cot.title, cot.category, cot.xp_reward, cot.order_index]);
+      }
+      tasks = defaultCommonTasks;
+    }
+    res.json(tasks);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Create a new common onboarding task (Admin / Manager)
+app.post('/api/common-onboarding-tasks', async (req, res) => {
+  try {
+    const callerRole = req.headers['x-user-role'];
+    if (callerRole !== 'admin' && callerRole !== 'manager') {
+      return res.status(403).json({ error: 'Permission denied: Only administrators can create common onboarding tasks.' });
+    }
+
+    const { title, category = 'General', xp_reward = 35, actor_name = 'Admin' } = req.body;
+    if (!title || !title.trim()) {
+      return res.status(400).json({ error: 'Task title is required.' });
+    }
+
+    const taskId = 'cot_' + uuidv4().substring(0, 8);
+    const maxOrder = await query('SELECT MAX(order_index) as max_idx FROM common_onboarding_tasks');
+    const nextOrder = (Number(maxOrder[0]?.max_idx) || 0) + 1;
+
+    await query(`
+      INSERT INTO common_onboarding_tasks (id, title, category, xp_reward, order_index)
+      VALUES (?, ?, ?, ?, ?)
+    `, [taskId, title.trim(), category.trim(), Number(xp_reward) || 35, nextOrder]);
+
+    await logActivity({
+      entity_type: 'onboarding',
+      entity_id: taskId,
+      user_name: actor_name,
+      action: 'COMMON_TASK_CREATED',
+      details: `Created common onboarding task template "${title}" (+${xp_reward} XP)`
+    });
+
+    const created = await getOne('SELECT * FROM common_onboarding_tasks WHERE id = ?', [taskId]);
+    res.status(201).json(created);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Update a common onboarding task
+app.put('/api/common-onboarding-tasks/:id', async (req, res) => {
+  try {
+    const callerRole = req.headers['x-user-role'];
+    if (callerRole !== 'admin' && callerRole !== 'manager') {
+      return res.status(403).json({ error: 'Permission denied.' });
+    }
+
+    const { title, category, xp_reward, order_index, actor_name = 'Admin' } = req.body;
+    const task = await getOne('SELECT * FROM common_onboarding_tasks WHERE id = ?', [req.params.id]);
+    if (!task) return res.status(404).json({ error: 'Common task not found.' });
+
+    await query(`
+      UPDATE common_onboarding_tasks
+      SET title = COALESCE(?, title),
+          category = COALESCE(?, category),
+          xp_reward = COALESCE(?, xp_reward),
+          order_index = COALESCE(?, order_index)
+      WHERE id = ?
+    `, [title, category, xp_reward !== undefined ? Number(xp_reward) : null, order_index !== undefined ? Number(order_index) : null, req.params.id]);
+
+    await logActivity({
+      entity_type: 'onboarding',
+      entity_id: req.params.id,
+      user_name: actor_name,
+      action: 'COMMON_TASK_UPDATED',
+      details: `Updated common onboarding task template "${title || task.title}"`
+    });
+
+    const updated = await getOne('SELECT * FROM common_onboarding_tasks WHERE id = ?', [req.params.id]);
+    res.json(updated);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Delete a common onboarding task
+app.delete('/api/common-onboarding-tasks/:id', async (req, res) => {
+  try {
+    const callerRole = req.headers['x-user-role'];
+    if (callerRole !== 'admin') {
+      return res.status(403).json({ error: 'Permission denied: Only admin can delete common onboarding tasks.' });
+    }
+
+    const task = await getOne('SELECT * FROM common_onboarding_tasks WHERE id = ?', [req.params.id]);
+    if (!task) return res.status(404).json({ error: 'Common task not found.' });
+
+    await query('DELETE FROM common_onboarding_tasks WHERE id = ?', [req.params.id]);
+
+    await logActivity({
+      entity_type: 'onboarding',
+      entity_id: req.params.id,
+      user_name: req.body.actor_name || 'Admin',
+      action: 'COMMON_TASK_DELETED',
+      details: `Removed common onboarding task template "${task.title}"`
+    });
+
+    res.json({ success: true, id: req.params.id });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Sync common tasks to all active members
+app.post('/api/common-onboarding-tasks/sync-all', async (req, res) => {
+  try {
+    const users = await query("SELECT id FROM users WHERE status != 'deactivated'");
+    for (const u of users) {
+      await assignCommonOnboardingTasksToUser(u.id);
+    }
+    res.json({ success: true, syncedUsersCount: users.length });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -931,19 +1494,37 @@ app.get('/api/workspaces', async (req, res) => {
 
 app.get('/api/projects', async (req, res) => {
   try {
-    const userRole = req.headers['x-user-role'] || 'admin';
+    const userRole = req.headers['x-user-role'] || 'member';
+    const userId = req.headers['x-user-id'] || req.query.user_id;
     const canViewAll = userRole === 'admin' || userRole === 'manager';
     const includeArchived = req.query.include_archived === 'true';
 
     let conditions = [];
     if (!canViewAll) {
       conditions.push('(p.is_restricted = 0 OR p.is_restricted IS NULL)');
+      // If user is a team member, only show projects assigned to them by admin (or projects where they have assigned tasks)
+      if (userId) {
+        conditions.push(`(
+          p.assigned_user_ids LIKE ? OR 
+          EXISTS (
+            SELECT 1 FROM boards b 
+            JOIN tasks t ON t.board_id = b.id 
+            WHERE b.project_id = p.id AND t.assignee_ids LIKE ?
+          )
+        )`);
+      } else {
+        conditions.push('1 = 0');
+      }
     }
     if (!includeArchived) {
       conditions.push("(p.status != 'archived' OR p.status IS NULL)");
     }
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    const queryParams = [];
+    if (!canViewAll && userId) {
+      queryParams.push(`%${userId}%`, `%${userId}%`);
+    }
 
     const dateNowExpr = getDbType() === 'postgres' ? "TO_CHAR(CURRENT_DATE, 'YYYY-MM-DD')" : "date('now')";
 
@@ -958,7 +1539,7 @@ app.get('/api/projects', async (req, res) => {
       FROM projects p
       ${whereClause}
       ORDER BY p.created_at DESC
-    `);
+    `, queryParams);
 
     // For each project, fetch top blocked/urgent issues and sanitize fields if employee
     const enrichedProjects = await Promise.all(projects.map(async (proj) => {
@@ -1051,6 +1632,7 @@ app.post('/api/projects', async (req, res) => {
       github_repo = '',
       server_name = '',
       is_restricted = 0,
+      assigned_user_ids = null,
       tech_stack = '',
       frontend_tech = '',
       backend_tech = '',
@@ -1060,14 +1642,16 @@ app.post('/api/projects', async (req, res) => {
     const projId = 'proj_' + uuidv4().substring(0, 8);
     const ws = workspace_id || 'ws_primary';
 
+    const cleanAssigned = Array.isArray(assigned_user_ids) ? JSON.stringify(assigned_user_ids) : (assigned_user_ids || '[]');
+
     await query(`
       INSERT INTO projects (
         id, workspace_id, name, description, color, status, priority, 
         start_date, due_date, project_folder, doc_markdown, doc_pdf_path, 
         progress_percent, lifecycle_stage, location_path, github_repo, 
-        server_name, is_restricted, tech_stack, frontend_tech, backend_tech, database_tech, created_by
+        server_name, is_restricted, assigned_user_ids, tech_stack, frontend_tech, backend_tech, database_tech, created_by
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'usr_admin')
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'usr_admin')
     `, [
       projId, ws, name, description, color, status, priority, 
       start_date || null, due_date || null, 
@@ -1075,6 +1659,7 @@ app.post('/api/projects', async (req, res) => {
       Number(progress_percent) || 0, lifecycle_stage || 'Development',
       location_path || null, github_repo || null, server_name || null,
       is_restricted ? 1 : 0,
+      cleanAssigned,
       tech_stack || null, frontend_tech || null, backend_tech || null, database_tech || null
     ]);
 
@@ -1118,6 +1703,7 @@ app.put('/api/projects/:id', async (req, res) => {
       github_repo,
       server_name,
       is_restricted,
+      assigned_user_ids,
       tech_stack,
       frontend_tech,
       backend_tech,
@@ -1127,6 +1713,10 @@ app.put('/api/projects/:id', async (req, res) => {
 
     const existing = await getOne('SELECT * FROM projects WHERE id = ?', [req.params.id]);
     if (!existing) return res.status(404).json({ error: 'Project not found' });
+
+    const cleanAssigned = assigned_user_ids !== undefined 
+      ? (Array.isArray(assigned_user_ids) ? JSON.stringify(assigned_user_ids) : assigned_user_ids)
+      : null;
 
     await query(`
       UPDATE projects
@@ -1146,6 +1736,7 @@ app.put('/api/projects/:id', async (req, res) => {
           github_repo = COALESCE(?, github_repo),
           server_name = COALESCE(?, server_name),
           is_restricted = COALESCE(?, is_restricted),
+          assigned_user_ids = COALESCE(?, assigned_user_ids),
           tech_stack = COALESCE(?, tech_stack),
           frontend_tech = COALESCE(?, frontend_tech),
           backend_tech = COALESCE(?, backend_tech),
@@ -1158,6 +1749,7 @@ app.put('/api/projects/:id', async (req, res) => {
       lifecycle_stage,
       location_path, github_repo, server_name,
       is_restricted !== undefined ? (is_restricted ? 1 : 0) : null,
+      cleanAssigned,
       tech_stack, frontend_tech, backend_tech, database_tech,
       req.params.id
     ]);
@@ -1179,8 +1771,12 @@ app.put('/api/projects/:id', async (req, res) => {
 });
 
 // Remove or Permanently Delete Project
-app.delete('/api/projects/:id', async (req, res) => {
+app.delete('/api/projects/:id', optionalAuth, async (req, res) => {
   try {
+    const callerRole = (req.user && req.user.role) || req.headers['x-user-role'];
+    if (callerRole === 'member' || callerRole === 'team') {
+      return res.status(403).json({ error: 'Permission denied: Only administrators and managers are authorized to delete projects.' });
+    }
     const { id } = req.params;
     const mode = req.query.mode || req.body?.mode || 'archive'; // 'archive' or 'hard'
     const actorName = req.query.actor_name || req.body?.actor_name || 'Admin';
@@ -1734,6 +2330,7 @@ app.post('/api/tasks', async (req, res) => {
   try {
     const {
       board_id,
+      parent_id = null,
       title,
       description = '',
       status = 'To Do',
@@ -1743,6 +2340,7 @@ app.post('/api/tasks', async (req, res) => {
       due_date = null,
       assignee_ids = [],
       tags = [],
+      xp_reward = 50,
       actor_name = 'Admin'
     } = req.body;
 
@@ -1755,11 +2353,12 @@ app.post('/api/tasks', async (req, res) => {
     const nextOrder = (maxOrder[0]?.max_idx || 0) + 1;
 
     await query(`
-      INSERT INTO tasks (id, board_id, title, description, status, priority, estimated_hours, actual_hours, start_date, due_date, order_index, assignee_ids, tags, created_by)
-      VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, 'usr_admin')
+      INSERT INTO tasks (id, board_id, parent_id, title, description, status, priority, estimated_hours, actual_hours, start_date, due_date, order_index, assignee_ids, tags, xp_reward, created_by)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, 'usr_admin')
     `, [
       taskId,
       board_id,
+      parent_id || null,
       title,
       description,
       status,
@@ -1769,7 +2368,8 @@ app.post('/api/tasks', async (req, res) => {
       due_date,
       nextOrder,
       JSON.stringify(assignee_ids),
-      JSON.stringify(tags)
+      JSON.stringify(tags),
+      Number(xp_reward) || 50
     ]);
 
     // Universal Audit Log
@@ -1778,7 +2378,7 @@ app.post('/api/tasks', async (req, res) => {
       entity_id: taskId,
       user_name: actor_name,
       action: 'TASK_CREATED',
-      details: `Created task "${title}" [Status: ${status}, Priority: ${priority}]`
+      details: `Created task "${title}" [Status: ${status}, Priority: ${priority}, Reward: +${Number(xp_reward) || 50} XP]${parent_id ? ` (Subtask of ${parent_id})` : ''}`
     });
 
     const created = await getOne('SELECT * FROM tasks WHERE id = ?', [taskId]);
@@ -1792,7 +2392,7 @@ app.post('/api/tasks', async (req, res) => {
   }
 });
 
-// Update task (supports inline cell updates: status, priority, title, assignees, dates)
+// Update task (supports inline cell updates: status, priority, title, assignees, dates, xp_reward)
 app.patch('/api/tasks/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -1801,7 +2401,7 @@ app.patch('/api/tasks/:id', async (req, res) => {
 
     const updates = req.body;
     const actor_name = updates.actor_name || 'Admin';
-    const allowedFields = ['title', 'description', 'status', 'priority', 'estimated_hours', 'actual_hours', 'start_date', 'due_date', 'order_index'];
+    const allowedFields = ['title', 'description', 'status', 'priority', 'estimated_hours', 'actual_hours', 'start_date', 'due_date', 'order_index', 'xp_reward', 'parent_id'];
     
     let queryParts = [];
     let values = [];
@@ -2028,6 +2628,22 @@ app.post('/api/tasks/:id/comments', async (req, res) => {
     `, [cId]);
 
     res.status(201).json(created);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Get subtasks of a parent task
+app.get('/api/tasks/:id/subtasks', async (req, res) => {
+  try {
+    const subtasks = await query('SELECT * FROM tasks WHERE parent_id = ? ORDER BY order_index ASC, created_at ASC', [req.params.id]);
+    const parsed = subtasks.map(t => ({
+      ...t,
+      assignee_ids: t.assignee_ids ? JSON.parse(t.assignee_ids) : [],
+      tags: t.tags ? JSON.parse(t.tags) : [],
+      qc_issues: t.qc_issues ? JSON.parse(t.qc_issues) : []
+    }));
+    res.json(parsed);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -2460,7 +3076,7 @@ app.get('/api/messages', async (req, res) => {
     if (user_id) {
       const viewer = await getOne('SELECT id, role FROM users WHERE id = ?', [user_id]);
       if (viewer && viewer.role !== 'admin') {
-        conditions.push('(m.recipient_type = "broadcast" OR m.recipient_id = ? OR m.sender_id = ?)');
+        conditions.push("(m.recipient_type = 'broadcast' OR m.recipient_id = ? OR m.sender_id = ?)");
         params.push(user_id, user_id);
       }
     }
@@ -2680,10 +3296,10 @@ app.get('/api/videos', async (req, res) => {
 });
 
 // 2. Upload / Create instruction video
-app.post('/api/videos', async (req, res) => {
+app.post('/api/videos', uploadLimiter, optionalAuth, async (req, res) => {
   try {
     const {
-      uploader_id = 'usr_admin',
+      uploader_id = (req.user && req.user.id) || 'usr_admin',
       title,
       description = '',
       video_data, // base64 string data or URL
@@ -2770,13 +3386,19 @@ app.post('/api/videos', async (req, res) => {
 });
 
 // 3. Delete instruction video
-app.delete('/api/videos/:id', async (req, res) => {
+app.delete('/api/videos/:id', optionalAuth, async (req, res) => {
   try {
     const { id } = req.params;
     const { actor_name = 'Admin' } = req.query;
+    const callerRole = (req.user && req.user.role) || req.headers['x-user-role'];
+    const callerId = (req.user && req.user.id);
 
     const video = await getOne('SELECT * FROM instruction_videos WHERE id = ?', [id]);
     if (!video) return res.status(404).json({ error: 'Video not found' });
+
+    if (callerRole !== 'admin' && callerRole !== 'manager' && video.uploader_id !== callerId) {
+      return res.status(403).json({ error: 'Permission denied: You are not authorized to delete this video.' });
+    }
 
     // Remove local file if it resides in /uploads/videos/
     if (video.video_url && video.video_url.startsWith('/uploads/videos/')) {

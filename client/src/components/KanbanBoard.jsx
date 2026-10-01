@@ -5,7 +5,8 @@ import {
   Clock, 
   AlertCircle, 
   MoreVertical,
-  ChevronRight
+  ChevronRight,
+  ListTree
 } from 'lucide-react';
 
 const COLUMNS = [
@@ -106,9 +107,16 @@ export default function KanbanBoard({ tasks = [], users = [], onUpdateTask, onOp
                     </div>
 
                     {/* Task Title */}
-                    <h4 className="text-xs font-semibold text-slate-800 group-hover:text-emerald-700 transition-colors line-clamp-2 leading-relaxed">
-                      {task.title}
-                    </h4>
+                    <div className="space-y-1">
+                      {task.parent_id && (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          <ListTree className="w-2.5 h-2.5" /> Subtask
+                        </span>
+                      )}
+                      <h4 className="text-xs font-semibold text-slate-800 group-hover:text-emerald-700 transition-colors line-clamp-2 leading-relaxed">
+                        {task.title}
+                      </h4>
+                    </div>
 
                     {/* Meta Footer */}
                     <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-[11px] text-slate-400">

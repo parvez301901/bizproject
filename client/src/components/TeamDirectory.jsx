@@ -31,6 +31,9 @@ export default function TeamDirectory({ users = [], onRefresh, onOpenOnboardModa
   const [statusFilter, setStatusFilter] = useState('All'); // 'All', 'active', 'deactivated'
   const [actionLoadingId, setActionLoadingId] = useState(null);
 
+  const isAdmin = currentUser?.role === 'admin';
+  const canModifyMembers = isAdmin; // Only admin can add or delete/deactivate members
+
   const departments = ['All', ...new Set(users.map(u => u.department).filter(Boolean))];
 
   const filtered = users.filter(u => {
@@ -48,6 +51,10 @@ export default function TeamDirectory({ users = [], onRefresh, onOpenOnboardModa
 
   // Soft-Delete (Deactivate) or Reactivate
   const handleToggleStatus = async (user) => {
+    if (!canModifyMembers) {
+      alert('Permission denied: Managers are not authorized to deactivate or reactivate members.');
+      return;
+    }
     const newStatus = user.status === 'deactivated' ? 'active' : 'deactivated';
     const confirmMessage = newStatus === 'deactivated'
       ? `Soft-delete (deactivate) member "${user.full_name}"? Their account will be inactive and logged in the audit trail.`
@@ -68,6 +75,10 @@ export default function TeamDirectory({ users = [], onRefresh, onOpenOnboardModa
 
   // Permanent Delete
   const handleDeletePermanent = async (user) => {
+    if (!canModifyMembers) {
+      alert('Permission denied: Managers are not authorized to delete members.');
+      return;
+    }
     if (!window.confirm(`PERMANENT DELETE: Are you sure you want to completely erase "${user.full_name}" and their checklist data from the database? This action will be logged in the audit trail.`)) {
       return;
     }
@@ -90,16 +101,20 @@ export default function TeamDirectory({ users = [], onRefresh, onOpenOnboardModa
         <div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Team Directory</h1>
           <p className="text-xs text-slate-500 mt-1">
-            Manage personnel, assign roles, soft-delete (deactivate), or permanently remove members with audit tracking.
+            {canModifyMembers 
+              ? 'Manage personnel, assign roles, soft-delete (deactivate), or permanently remove members with audit tracking.'
+              : 'View team members, designations, departments, contact details, and project assignments.'}
           </p>
         </div>
-        <button
-          onClick={onOpenOnboardModal}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shadow-sm shadow-emerald-600/20 transition-all cursor-pointer"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Add Team Member</span>
-        </button>
+        {canModifyMembers && (
+          <button
+            onClick={onOpenOnboardModal}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shadow-sm shadow-emerald-600/20 transition-all cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Add Team Member</span>
+          </button>
+        )}
       </div>
 
       {/* Filter / Search Bar */}
@@ -269,41 +284,43 @@ export default function TeamDirectory({ users = [], onRefresh, onOpenOnboardModa
                   )}
                 </div>
 
-                {/* Actions: Soft-Delete (Deactivate) and Permanent Delete */}
-                <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
-                  {/* Soft Delete / Reactivate Toggle */}
-                  <button
-                    onClick={() => handleToggleStatus(user)}
-                    disabled={isLoading}
-                    className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer border ${
-                      isDeactivated
-                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
-                        : 'bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100'
-                    }`}
-                  >
-                    {isDeactivated ? (
-                      <>
-                        <UserCheck className="w-3.5 h-3.5" />
-                        <span>Reactivate Member</span>
-                      </>
-                    ) : (
-                      <>
-                        <UserX className="w-3.5 h-3.5" />
-                        <span>Deactivate (Soft-Delete)</span>
-                      </>
-                    )}
-                  </button>
+                {/* Actions: Soft-Delete (Deactivate) and Permanent Delete (Admin Only) */}
+                {canModifyMembers && (
+                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                    {/* Soft Delete / Reactivate Toggle */}
+                    <button
+                      onClick={() => handleToggleStatus(user)}
+                      disabled={isLoading}
+                      className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer border ${
+                        isDeactivated
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                          : 'bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100'
+                      }`}
+                    >
+                      {isDeactivated ? (
+                        <>
+                          <UserCheck className="w-3.5 h-3.5" />
+                          <span>Reactivate Member</span>
+                        </>
+                      ) : (
+                        <>
+                          <UserX className="w-3.5 h-3.5" />
+                          <span>Deactivate (Soft-Delete)</span>
+                        </>
+                      )}
+                    </button>
 
-                  {/* Permanent Hard Delete */}
-                  <button
-                    onClick={() => handleDeletePermanent(user)}
-                    disabled={isLoading}
-                    className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors border border-transparent hover:border-rose-200 cursor-pointer"
-                    title="Permanently Delete Member"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
+                    {/* Permanent Hard Delete */}
+                    <button
+                      onClick={() => handleDeletePermanent(user)}
+                      disabled={isLoading}
+                      className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors border border-transparent hover:border-rose-200 cursor-pointer"
+                      title="Permanently Delete Member"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
               </div>
             );
           })

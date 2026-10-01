@@ -22,10 +22,11 @@ import {
 import { api } from '../services/api';
 import { useLanguage } from '../LanguageContext';
 
-export default function WorkReportView({ users = [], projects = [], onOpenLogWork }) {
+export default function WorkReportView({ users = [], projects = [], onOpenLogWork, currentUser }) {
   const { t } = useLanguage();
+  const isAdmin = currentUser?.role === 'admin';
   const [timeframe, setTimeframe] = useState('week'); // 'day', 'week', 'month', 'all'
-  const [selectedUserId, setSelectedUserId] = useState('all');
+  const [selectedUserId, setSelectedUserId] = useState(() => (currentUser?.role === 'admin' ? 'all' : (currentUser?.id || 'all')));
   const [selectedProjectId, setSelectedProjectId] = useState('all');
   const [reportData, setReportData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -150,21 +151,23 @@ export default function WorkReportView({ users = [], projects = [], onOpenLogWor
             </button>
           </div>
 
-          {/* Employee Filter Dropdown */}
-          <div className="relative">
-            <select
-              value={selectedUserId}
-              onChange={(e) => setSelectedUserId(e.target.value)}
-              className="text-xs bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-700 font-medium focus:outline-none focus:border-emerald-500 shadow-2xs pr-8"
-            >
-              <option value="all">👥 {t('common.allTeam')}</option>
-              {users.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.full_name} ({u.designation || u.role || 'Member'})
-                </option>
-              ))}
-            </select>
-          </div>
+          {/* Employee Filter Dropdown (Admin only; team member views their own report) */}
+          {isAdmin && (
+            <div className="relative">
+              <select
+                value={selectedUserId}
+                onChange={(e) => setSelectedUserId(e.target.value)}
+                className="text-xs bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-700 font-medium focus:outline-none focus:border-emerald-500 shadow-2xs pr-8"
+              >
+                <option value="all">👥 {t('common.allTeam')}</option>
+                {users.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.full_name} ({u.designation || u.role || 'Member'})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* Project Filter */}
           <select

@@ -11,7 +11,9 @@ import {
   Sparkles,
   Database,
   Code2,
-  Cpu
+  Cpu,
+  Users,
+  UserCheck
 } from 'lucide-react';
 import { api } from '../services/api';
 
@@ -53,8 +55,16 @@ export default function NewProjectModal({ onClose, onCreated }) {
   const [databaseTech, setDatabaseTech] = useState('');
   const [techStack, setTechStack] = useState('');
   const [isRestricted, setIsRestricted] = useState(false);
+  const [assignedUserIds, setAssignedUserIds] = useState([]);
+  const [allUsersList, setAllUsersList] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  React.useEffect(() => {
+    api.getUsers().then(users => {
+      setAllUsersList(users || []);
+    }).catch(console.error);
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -81,7 +91,8 @@ export default function NewProjectModal({ onClose, onCreated }) {
         backend_tech: backendTech.trim() || null,
         database_tech: databaseTech.trim() || null,
         tech_stack: techStack.trim() || null,
-        is_restricted: isRestricted ? 1 : 0
+        is_restricted: isRestricted ? 1 : 0,
+        assigned_user_ids: assignedUserIds
       });
       if (onCreated) onCreated();
       onClose();
@@ -312,6 +323,59 @@ export default function NewProjectModal({ onClose, onCreated }) {
               />
               <span>Restricted Access (Hide infrastructure details from regular employees)</span>
             </label>
+
+            {/* Team Member Project Assignment */}
+            <div className="pt-2 border-t border-slate-200/80 space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-[11px] font-bold text-slate-700 flex items-center gap-1.5">
+                  <Users className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Assign Team Members</span>
+                </label>
+                <span className="text-[10px] font-mono font-semibold bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded">
+                  {assignedUserIds.length} Assigned
+                </span>
+              </div>
+              <p className="text-[10px] text-slate-500">
+                Grant access to specific team members. (If none selected, visible to all active team members)
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-36 overflow-y-auto pr-1">
+                {allUsersList.map(u => {
+                  const isAssigned = assignedUserIds.includes(u.id);
+                  return (
+                    <button
+                      type="button"
+                      key={u.id}
+                      onClick={() => {
+                        setAssignedUserIds(prev => 
+                          prev.includes(u.id) ? prev.filter(id => id !== u.id) : [...prev, u.id]
+                        );
+                      }}
+                      className={`flex items-center justify-between p-2 rounded-lg text-xs font-medium border transition-all text-left cursor-pointer ${
+                        isAssigned
+                          ? 'bg-emerald-50 border-emerald-500 text-emerald-900 shadow-2xs'
+                          : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <img
+                          src={u.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(u.full_name)}`}
+                          alt={u.full_name}
+                          className="w-5 h-5 rounded-full object-cover shrink-0"
+                        />
+                        <div className="truncate">
+                          <span className="block truncate font-semibold">{u.full_name}</span>
+                          <span className="text-[10px] text-slate-400 block truncate">{u.designation || u.role}</span>
+                        </div>
+                      </div>
+                      {isAssigned && (
+                        <UserCheck className="w-4 h-4 text-emerald-600 shrink-0 ml-1.5" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </div>
 
           {/* Dates */}

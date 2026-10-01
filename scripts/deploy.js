@@ -4,10 +4,17 @@ const crypto = require('crypto');
 const https = require('https');
 const { execSync } = require('child_process');
 
+require('dotenv').config();
+
 // Configuration
-const NETLIFY_TOKEN = process.env.NETLIFY_AUTH_TOKEN || 'nfp_f7at6jtVf5emkPUa8WXv8VkxsvqgGMsa5b3e';
-const NETLIFY_SITE_ID = process.env.NETLIFY_SITE_ID || '07bc42f5-f148-4028-b542-582e6f98e7e4';
+const NETLIFY_TOKEN = process.env.NETLIFY_AUTH_TOKEN;
+const NETLIFY_SITE_ID = process.env.NETLIFY_SITE_ID;
 const RENDER_HOOK_URL = process.env.RENDER_DEPLOY_HOOK_URL || '';
+
+if (!NETLIFY_TOKEN || !NETLIFY_SITE_ID) {
+  console.error('[Deployer] Error: NETLIFY_AUTH_TOKEN and NETLIFY_SITE_ID must be set in .env or environment.');
+  process.exit(1);
+}
 
 function log(msg) {
   console.log(`[Deployer] ${msg}`);

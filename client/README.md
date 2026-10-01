@@ -1,16 +1,15 @@
-# React + Vite
+# Client Frontend Router & Reference
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+| Folder or file | What lives there | Read before changing |
+|---|---|---|
+| `client/src/App.jsx` | Top-level state coordinator, authentication state, modal state, active tab routing | Read before modifying app navigation or global modals |
+| `client/src/components/Sidebar.jsx` | Main responsive navigation drawer, role-based menu display, custom language uploader | Read before adding new navigation links or modifying role menu access |
+| `client/src/components/` | Modular UI views (AdminOverview, MyOverviewView, OnboardingHub, ProjectsDirectoryView, MondayTable, KanbanBoard, LeaderboardView, MessageBoardView, InstructionVideosView, WorkReportView, etc.) | Read specific component before modifying view-specific UI |
+| `client/src/services/api.js` | Axios API service layer with authentication token interceptor and API methods | Read before integrating new backend endpoints |
+| `client/src/LanguageContext.jsx` | Multi-language internationalization context (`en`, `sv`, custom JSON) | Read before adding localization strings |
+| `client/src/locales/` | Translation dictionaries (`en.json`, `sv.json`) | Read before modifying translation keys |
+| `client/public/guide.html` | Self-contained, interactive Member & Admin How-To Guide with instant search, role switcher, and quick copy | Read before updating user guide or documentation |
 
-Currently, two official plugins are available:
-
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+## Quick Commands
+- Start dev frontend: `npm run client` (runs on `http://localhost:3001`)
+- Production build: `npm run build:client`

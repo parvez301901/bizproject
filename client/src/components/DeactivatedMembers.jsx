@@ -19,6 +19,9 @@ export default function DeactivatedMembers({ deactivatedUsers = [], onRefresh, c
   const [search, setSearch] = useState('');
   const [loadingId, setLoadingId] = useState(null);
 
+  const isAdmin = currentUser?.role === 'admin';
+  const canModifyMembers = isAdmin; // Only admin can restore or delete members
+
   const filtered = deactivatedUsers.filter(u => 
     u.full_name.toLowerCase().includes(search.toLowerCase()) ||
     u.email.toLowerCase().includes(search.toLowerCase()) ||
@@ -26,6 +29,10 @@ export default function DeactivatedMembers({ deactivatedUsers = [], onRefresh, c
   );
 
   const handleReactivate = async (user) => {
+    if (!canModifyMembers) {
+      alert('Permission denied: Managers are not authorized to restore deactivated members.');
+      return;
+    }
     if (!window.confirm(`Reactivate member "${user.full_name}"? Their profile and historical progress will be restored to the active workspace.`)) {
       return;
     }
@@ -41,6 +48,10 @@ export default function DeactivatedMembers({ deactivatedUsers = [], onRefresh, c
   };
 
   const handlePermanentDelete = async (user) => {
+    if (!canModifyMembers) {
+      alert('Permission denied: Managers are not authorized to delete members.');
+      return;
+    }
     if (!window.confirm(`PERMANENT DELETE: Are you completely sure you want to permanently delete "${user.full_name}"? This cannot be undone.`)) {
       return;
     }
@@ -178,26 +189,30 @@ export default function DeactivatedMembers({ deactivatedUsers = [], onRefresh, c
 
                       {/* Actions */}
                       <td className="px-5 py-3.5 text-right">
-                        <div className="inline-flex items-center gap-2">
-                          <button
-                            onClick={() => handleReactivate(user)}
-                            disabled={isLoading}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shadow-xs transition-colors cursor-pointer"
-                            title="Restore employee back to active dashboard"
-                          >
-                            <RotateCcw className="w-3.5 h-3.5" />
-                            <span>Restore Member</span>
-                          </button>
+                        {canModifyMembers ? (
+                          <div className="inline-flex items-center gap-2">
+                            <button
+                              onClick={() => handleReactivate(user)}
+                              disabled={isLoading}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shadow-xs transition-colors cursor-pointer"
+                              title="Restore employee back to active dashboard"
+                            >
+                              <RotateCcw className="w-3.5 h-3.5" />
+                              <span>Restore Member</span>
+                            </button>
 
-                          <button
-                            onClick={() => handlePermanentDelete(user)}
-                            disabled={isLoading}
-                            className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors border border-transparent hover:border-rose-200 cursor-pointer"
-                            title="Permanent Hard Delete"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
+                            <button
+                              onClick={() => handlePermanentDelete(user)}
+                              disabled={isLoading}
+                              className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors border border-transparent hover:border-rose-200 cursor-pointer"
+                              title="Permanent Hard Delete"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-slate-400 italic">Read-only</span>
+                        )}
                       </td>
                     </tr>
                   );

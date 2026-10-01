@@ -26,10 +26,9 @@ npm run deploy
 
 ---
 
-### Credentials & Keys Reference (Pre-Configured)
-- **Netlify Site ID**: `07bc42f5-f148-4028-b542-582e6f98e7e4`
-- **Netlify Auth Token**: `nfp_f7at6jtVf5emkPUa8WXv8VkxsvqgGMsa5b3e`
-- **Neon PostgreSQL**: `postgresql://neondb_owner:npg_sALSrY4bq8Fl@ep-tiny-base-b43gm6rl-pooler.c-6.us-east-2.aws.neon.tech/neondb?sslmode=require`
+### Credentials & Configuration Reference
+- **Netlify Site ID & Auth Token**: Managed via `.env` (`NETLIFY_SITE_ID`, `NETLIFY_AUTH_TOKEN`) or CI/CD Environment Variables.
+- **Neon PostgreSQL**: Managed via `.env` (`DATABASE_URL`) or Render Environment Variables.
 - **Git Repo**: `https://github.com/parvez301901/bizproject`
 
 ---
