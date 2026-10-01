@@ -157,9 +157,15 @@ async function notifyAdminNewUser(newUser) {
     // 1. Prefer Resend API if configured (HTTPS REST API, bypasses cloud host SMTP port blocks)
     if (process.env.RESEND_API_KEY) {
       console.log(`[Email] Dispatching via Resend HTTPS API to ${ADMIN_EMAIL}...`);
+      let resendFrom = process.env.RESEND_FROM || process.env.EMAIL_FROM;
+      // Resend requires verified domains or onboarding@resend.dev for test delivery
+      if (!resendFrom || resendFrom.includes('@gmail.') || resendFrom.includes('@yahoo.') || resendFrom.includes('@hotmail.')) {
+        resendFrom = 'BizProject <onboarding@resend.dev>';
+      }
+
       const resendResult = await sendViaResend(process.env.RESEND_API_KEY, {
         to: ADMIN_EMAIL,
-        from: process.env.EMAIL_FROM || 'BizProject <onboarding@resend.dev>',
+        from: resendFrom,
         subject,
         html: htmlContent,
         text: textContent
