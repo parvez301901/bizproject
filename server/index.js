@@ -137,12 +137,16 @@ if (!fs.existsSync(avatarsUploadDir)) fs.mkdirSync(avatarsUploadDir, { recursive
 if (!fs.existsSync(reportsUploadDir)) fs.mkdirSync(reportsUploadDir, { recursive: true });
 app.use('/uploads', express.static(uploadsDir));
 
-// Initialize DB and Seed
-initDB();
-setTimeout(() => {
-  seedData();
-  syncUserLevelsAndXP();
-}, 600);
+// Initialize DB and Seed safely without race conditions
+(async () => {
+  try {
+    await initDB();
+    await seedData();
+    await syncUserLevelsAndXP();
+  } catch (err) {
+    console.error('[Startup] DB Initialization or seed error:', err.message);
+  }
+})();
 
 // --- GAMIFICATION & XP LEVEL PROGRESSION ENGINE ---
 // User requested milestone thresholds:

@@ -4,42 +4,47 @@ const { Pool } = require('pg');
 const Database = require('better-sqlite3');
 require('dotenv').config();
 
-let dbType = 'sqlite'; // 'postgres' or 'sqlite'
+let dbType = null; // 'postgres' or 'sqlite'
 let pgPool = null;
 let sqliteDb = null;
+let initPromise = null;
 
-// Initialize Database
+// Initialize Database safely (returns Promise, prevents race conditions)
 function initDB() {
-  const pgConnectionString = process.env.DATABASE_URL;
+  if (initPromise) return initPromise;
 
-  if (pgConnectionString && !process.env.USE_SQLITE) {
-    try {
-      const isCloudPg = pgConnectionString.includes('sslmode=require') || 
-                        pgConnectionString.includes('supabase.co') || 
-                        pgConnectionString.includes('neon.tech') || 
-                        process.env.NODE_ENV === 'production';
-      pgPool = new Pool({
-        connectionString: pgConnectionString,
-        ssl: isCloudPg ? { rejectUnauthorized: false } : false
-      });
-      // Test connection
-      pgPool.query('SELECT NOW()', (err) => {
-        if (err) {
-          console.warn('[DB] PostgreSQL connection failed, falling back to SQLite:', err.message);
-          setupSQLite();
-        } else {
-          console.log('[DB] Connected successfully to PostgreSQL.');
-          dbType = 'postgres';
-          setupPostgresSchema();
-        }
-      });
-    } catch (e) {
-      console.warn('[DB] Could not initialize Postgres, fallback to SQLite:', e.message);
+  initPromise = (async () => {
+    const pgConnectionString = process.env.DATABASE_URL;
+
+    if (pgConnectionString && !process.env.USE_SQLITE) {
+      try {
+        const isCloudPg = pgConnectionString.includes('sslmode=require') || 
+                          pgConnectionString.includes('supabase.co') || 
+                          pgConnectionString.includes('neon.tech') || 
+                          process.env.NODE_ENV === 'production';
+        pgPool = new Pool({
+          connectionString: pgConnectionString,
+          ssl: isCloudPg ? { rejectUnauthorized: false } : false
+        });
+
+        // Test connection synchronously with await
+        await pgPool.query('SELECT NOW()');
+        console.log('[DB] Connected successfully to PostgreSQL.');
+        dbType = 'postgres';
+        await setupPostgresSchema();
+        return 'postgres';
+      } catch (e) {
+        console.warn('[DB] PostgreSQL connection failed, falling back to SQLite:', e.message);
+        setupSQLite();
+        return 'sqlite';
+      }
+    } else {
       setupSQLite();
+      return 'sqlite';
     }
-  } else {
-    setupSQLite();
-  }
+  })();
+
+  return initPromise;
 }
 
 function setupSQLite() {
@@ -474,6 +479,10 @@ async function setupPostgresSchema() {
 
 // Unified query wrapper supporting both SQLite and PostgreSQL syntax
 async function query(sql, params = []) {
+  if (!dbType || (!pgPool && !sqliteDb)) {
+    await initDB();
+  }
+
   if (dbType === 'postgres' && pgPool) {
     // Convert ? to $1, $2, etc for postgres if needed
     let pSql = sql
@@ -485,7 +494,7 @@ async function query(sql, params = []) {
     }
     const res = await pgPool.query(pSql, params);
     return res.rows;
-  } else {
+  } else if (sqliteDb) {
     // SQLite execution
     const trimmed = sql.trim().toUpperCase();
     if (trimmed.startsWith('SELECT') || trimmed.startsWith('PRAGMA')) {
@@ -496,6 +505,8 @@ async function query(sql, params = []) {
       const info = stmt.run(...params);
       return { affectedRows: info.changes, lastInsertRowid: info.lastInsertRowid };
     }
+  } else {
+    throw new Error('[DB] Database connection not ready');
   }
 }
 
