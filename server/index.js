@@ -963,6 +963,7 @@ app.get('/api/admin/mail-status', optionalAuth, async (req, res) => {
   const configured = isMailConfigured();
   res.json({
     configured,
+    provider: process.env.RESEND_API_KEY ? 'resend (HTTPS API)' : (process.env.SMTP_HOST ? 'smtp (Nodemailer)' : 'none'),
     admin_email: ADMIN_EMAIL,
     smtp_host: process.env.SMTP_HOST || null,
     smtp_port: process.env.SMTP_PORT || null,

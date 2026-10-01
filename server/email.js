@@ -1,4 +1,5 @@
 const nodemailer = require('nodemailer');
+const https = require('https');
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'parvez301@gmail.com';
 
@@ -6,8 +7,8 @@ function getTransporter() {
   const host = process.env.SMTP_HOST;
   const user = process.env.SMTP_USER;
   const pass = process.env.SMTP_PASS;
-  const port = parseInt(process.env.SMTP_PORT || '465', 10);
-  const secure = process.env.SMTP_SECURE === 'false' ? false : (port === 465);
+  const port = parseInt(process.env.SMTP_PORT || '587', 10);
+  const secure = process.env.SMTP_SECURE === 'true' || (port === 465);
 
   if (!host || !user || !pass) {
     return null;
@@ -20,12 +21,66 @@ function getTransporter() {
     auth: {
       user,
       pass
-    }
+    },
+    connectionTimeout: 7000,
+    greetingTimeout: 7000,
+    socketTimeout: 8000
   });
 }
 
 function isMailConfigured() {
-  return Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
+  return Boolean(process.env.RESEND_API_KEY || (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS));
+}
+
+/**
+ * Send an email via Resend HTTPS REST API (Port 443 - works on all Cloud Hosts including Render Free Tier)
+ */
+function sendViaResend(apiKey, { to, from, subject, html, text }) {
+  return new Promise((resolve, reject) => {
+    const payload = JSON.stringify({
+      from: from || 'BizProject Notifications <onboarding@resend.dev>',
+      to: Array.isArray(to) ? to : [to],
+      subject,
+      html,
+      text
+    });
+
+    const req = https.request({
+      hostname: 'api.resend.com',
+      path: '/emails',
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(payload)
+      },
+      timeout: 10000
+    }, res => {
+      let body = '';
+      res.on('data', chunk => body += chunk);
+      res.on('end', () => {
+        try {
+          const json = JSON.parse(body);
+          if (res.statusCode >= 200 && res.statusCode < 300) {
+            resolve({ success: true, messageId: json.id });
+          } else {
+            reject(new Error(json.message || `Resend API returned HTTP ${res.statusCode}: ${body}`));
+          }
+        } catch (parseErr) {
+          reject(new Error(`Resend API error: ${body || res.statusCode}`));
+        }
+      });
+    });
+
+    req.on('timeout', () => {
+      req.destroy();
+      reject(new Error('Resend API request timed out after 10s'));
+    });
+
+    req.on('error', reject);
+    req.write(payload);
+    req.end();
+  });
 }
 
 /**
@@ -34,14 +89,9 @@ function isMailConfigured() {
  */
 async function notifyAdminNewUser(newUser) {
   try {
-    const transporter = getTransporter();
-    if (!transporter) {
-      console.log(`[Email] Mailer not configured (missing SMTP_HOST/SMTP_USER/SMTP_PASS in .env). Skipped admin registration email for "${newUser.email}".`);
-      return { success: false, reason: 'unconfigured' };
-    }
-
-    const fromAddress = process.env.EMAIL_FROM || `"BizProject System" <${process.env.SMTP_USER}>`;
     const appUrl = process.env.APP_URL || 'https://bizproject.biznessimpact.com';
+    const subject = `🔔 New User Registered: ${newUser.full_name || 'Member'} (${newUser.email})`;
+    const textContent = `New user registration on BizProject:\n\nName: ${newUser.full_name}\nEmail: ${newUser.email}\nDepartment: ${newUser.department || 'General'}\nDesignation: ${newUser.designation || 'Team Member'}\nAuth Method: ${newUser.auth_provider || 'Password'}\nTime: ${new Date().toLocaleString()}\nDashboard: ${appUrl}`;
 
     const htmlContent = `
       <div style="font-family: Arial, sans-serif; background-color: #f8fafc; padding: 24px; color: #1e293b;">
@@ -104,11 +154,34 @@ async function notifyAdminNewUser(newUser) {
       </div>
     `;
 
+    // 1. Prefer Resend API if configured (HTTPS REST API, bypasses cloud host SMTP port blocks)
+    if (process.env.RESEND_API_KEY) {
+      console.log(`[Email] Dispatching via Resend HTTPS API to ${ADMIN_EMAIL}...`);
+      const resendResult = await sendViaResend(process.env.RESEND_API_KEY, {
+        to: ADMIN_EMAIL,
+        from: process.env.EMAIL_FROM || 'BizProject <onboarding@resend.dev>',
+        subject,
+        html: htmlContent,
+        text: textContent
+      });
+      console.log(`[Email] Notification sent via Resend API! ID: ${resendResult.messageId}`);
+      return resendResult;
+    }
+
+    // 2. Fallback to standard SMTP / Nodemailer (works on local and hosts with open SMTP ports)
+    const transporter = getTransporter();
+    if (!transporter) {
+      console.log(`[Email] Mailer not configured (missing RESEND_API_KEY or SMTP_HOST in .env). Skipped admin registration email for "${newUser.email}".`);
+      return { success: false, reason: 'unconfigured' };
+    }
+
+    const fromAddress = process.env.EMAIL_FROM || `"BizProject System" <${process.env.SMTP_USER}>`;
+
     const info = await transporter.sendMail({
       from: fromAddress,
       to: ADMIN_EMAIL,
-      subject: `🔔 New User Registered: ${newUser.full_name || 'Member'} (${newUser.email})`,
-      text: `New user registration on BizProject:\n\nName: ${newUser.full_name}\nEmail: ${newUser.email}\nDepartment: ${newUser.department}\nDesignation: ${newUser.designation}\nTime: ${new Date().toLocaleString()}`,
+      subject,
+      text: textContent,
       html: htmlContent
     });
 
