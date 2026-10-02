@@ -29,22 +29,27 @@ app.use(helmet({
 const defaultAllowedOrigins = [
   'https://bizproject.biznessimpact.com',
   'http://bizproject.biznessimpact.com',
-  'https://bizproject-80307.netlify.app',
-  'http://localhost:5173',
-  'http://localhost:3000',
-  'http://localhost:5000',
-  'http://localhost:5001'
+  'https://bizproject-80307.netlify.app'
 ];
 const rawOrigins = process.env.ALLOWED_ORIGINS;
-const allowedOrigins = rawOrigins ? rawOrigins.split(',').map(s => s.trim()) : defaultAllowedOrigins;
+const configuredOrigins = rawOrigins ? rawOrigins.split(',').map(s => s.trim()) : defaultAllowedOrigins;
 
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error(`CORS policy violation: Origin ${origin} not permitted`));
+    // Allow non-browser requests (Postman, curl, server-to-server) or wildcard
+    if (!origin || configuredOrigins.includes('*')) {
+      return callback(null, true);
     }
+    // Allow configured origins
+    if (configuredOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    // Allow localhost and local IP addresses on any port for development
+    if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+      return callback(null, true);
+    }
+    // Disallow without crashing server with a 500 error
+    callback(null, false);
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
@@ -3517,6 +3522,15 @@ app.delete('/api/videos/:id', optionalAuth, async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+});
+
+// Global fallback error handler - always return JSON
+app.use((err, req, res, next) => {
+  console.error('[Unhandled Error]', err.message || err);
+  const status = err.status || err.statusCode || 500;
+  res.status(status).json({
+    error: err.message || 'An unexpected server error occurred.'
+  });
 });
 
 app.listen(PORT, () => {

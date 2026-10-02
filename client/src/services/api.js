@@ -9,6 +9,26 @@ function authFetch(url, options = {}) {
   return fetch(url, { ...options, headers });
 }
 
+async function parseResponse(res, defaultError = 'Request failed') {
+  const text = await res.text();
+  let json = null;
+  try {
+    json = text ? JSON.parse(text) : null;
+  } catch {
+    // Non-JSON response (e.g. HTML gateway error)
+    if (!res.ok) {
+      throw new Error(`Server temporarily unavailable (${res.status}). Please try again in a few seconds.`);
+    }
+    throw new Error('Received unexpected response format from server.');
+  }
+
+  if (!res.ok) {
+    const errorMsg = (json && (json.error || json.message)) || defaultError;
+    throw new Error(errorMsg);
+  }
+  return json;
+}
+
 export const api = {
   // Authentication
   async register(data) {
@@ -17,9 +37,7 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     });
-    const json = await res.json();
-    if (!res.ok) throw new Error(json.error || 'Registration failed');
-    return json;
+    return parseResponse(res, 'Registration failed');
   },
 
   async login(data) {
@@ -28,9 +46,7 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     });
-    const json = await res.json();
-    if (!res.ok) throw new Error(json.error || 'Login failed');
-    return json;
+    return parseResponse(res, 'Login failed');
   },
 
   async forgotPassword(data) {
