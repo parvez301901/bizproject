@@ -1,7 +1,7 @@
 {
   "common": {
-    "appName": "ApexBoard",
-    "appTagline": "Företagshuvudkontor",
+    "appName": "BizProject",
+    "appTagline": "Arbetsyta & Projekthubb",
     "loading": "Laddar...",
     "save": "Spara",
     "cancel": "Avbryt",
@@ -51,6 +51,7 @@
     "projects": "Projekt",
     "reports": "Rapporter",
     "leaderboard": "Topplista (XP)",
+    "earnings": "Inkomster & Belöningar",
     "recoveryVault": "Återställningsvalv",
     "auditTrail": "Revisionslogg",
     "projectsAndBoards": "Projekt & Tavlor",

@@ -49,3 +49,34 @@
 .table-row-hover:hover {
   background-color: #f8fafc;
 }
+
+/* Crisp Right Slide Toast Animation */
+@keyframes toastSlideInRight {
+  from {
+    transform: translateX(120%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes toastSlideOutRight {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(120%);
+    opacity: 0;
+  }
+}
+
+.toast-slide-in {
+  animation: toastSlideInRight 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.toast-slide-out {
+  animation: toastSlideOutRight 0.25s cubic-bezier(0.7, 0, 0.84, 0) forwards;
+}

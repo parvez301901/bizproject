@@ -20,7 +20,8 @@ import {
   Upload,
   Edit2,
   X,
-  Check
+  Check,
+  DollarSign
 } from 'lucide-react';
 import { api } from '../services/api';
 import UploadMemberImageModal from './UploadMemberImageModal';
@@ -41,6 +42,17 @@ export default function MyOverviewView({
   const [newDesignation, setNewDesignation] = useState(currentUser?.designation || '');
   const [newDepartment, setNewDepartment] = useState(currentUser?.department || '');
   const [savingProfile, setSavingProfile] = useState(false);
+  const [myEarnings, setMyEarnings] = useState({ totalEarnings: 0, rewardCount: 0 });
+
+  React.useEffect(() => {
+    if (currentUser?.id) {
+      api.getRewards({ user_id: currentUser.id })
+        .then(res => {
+          if (res?.summary) setMyEarnings(res.summary);
+        })
+        .catch(() => {});
+    }
+  }, [currentUser?.id]);
 
   if (!currentUser) return null;
 
@@ -229,15 +241,24 @@ export default function MyOverviewView({
           <p className="text-[11px] text-slate-500 mt-1">Earn +50 XP per completed task</p>
         </div>
 
-        <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs">
+        <div 
+          onClick={() => onNavigateToTab('earnings')}
+          className="bg-white border border-emerald-200/90 rounded-2xl p-5 shadow-xs hover:border-emerald-400 hover:shadow-md transition-all cursor-pointer group"
+          title="Click to view full earnings statement and reward ledger"
+        >
           <div className="flex items-center justify-between text-slate-400 mb-2">
-            <span className="text-xs font-semibold uppercase tracking-wider">Account Standing</span>
-            <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
-              <CheckCircle2 className="w-4 h-4" />
+            <span className="text-xs font-semibold uppercase tracking-wider text-emerald-800">My Earnings</span>
+            <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+              <DollarSign className="w-4 h-4 text-emerald-700" />
             </div>
           </div>
-          <div className="text-2xl font-extrabold text-emerald-600 capitalize">{currentUser.status || 'Active'}</div>
-          <p className="text-[11px] text-slate-500 mt-1">Role: <span className="font-semibold text-slate-700 uppercase">Team Member</span></p>
+          <div className="text-2xl font-extrabold text-emerald-700 font-mono">
+            ${Number(myEarnings.totalEarnings || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </div>
+          <p className="text-[11px] text-slate-500 mt-1 flex items-center justify-between">
+            <span>{myEarnings.rewardCount || 0} rewards awarded</span>
+            <span className="text-emerald-700 font-bold group-hover:translate-x-0.5 transition-transform">View &rarr;</span>
+          </p>
         </div>
       </div>
 
@@ -292,6 +313,22 @@ export default function MyOverviewView({
             </h3>
             <p className="text-xs text-slate-500 mt-1">
               Watch training and SOP instruction videos authorized specifically by admin.
+            </p>
+          </div>
+
+          <div 
+            onClick={() => onNavigateToTab('earnings')}
+            className="p-5 bg-white border border-emerald-200/90 rounded-2xl hover:border-emerald-500 hover:shadow-md transition-all cursor-pointer group"
+          >
+            <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+              <DollarSign className="w-5 h-5 text-emerald-700" />
+            </div>
+            <h3 className="font-bold text-slate-900 text-sm flex items-center justify-between">
+              <span>My Earnings & Rewards</span>
+              <ChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-1 transition-transform" />
+            </h3>
+            <p className="text-xs text-slate-500 mt-1">
+              Check your financial reward balance, completed task payouts, and transaction ledger anytime.
             </p>
           </div>
         </div>

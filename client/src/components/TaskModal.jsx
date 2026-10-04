@@ -24,11 +24,12 @@ import {
   ListTree,
   CheckSquare,
   Square,
-  Loader2
+  Loader2,
+  DollarSign
 } from 'lucide-react';
 import { api } from '../services/api';
 
-export default function TaskModal({ task, users = [], currentUser, onClose, onUpdateTask, onDeleteTask, onOpenLogWork }) {
+export default function TaskModal({ task, users = [], currentUser, onClose, onUpdateTask, onDeleteTask, onOpenLogWork, onOpenReward }) {
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
   const [title, setTitle] = useState(task?.title || '');
@@ -454,6 +455,27 @@ export default function TaskModal({ task, users = [], currentUser, onClose, onUp
                 ))}
               </div>
             </div>
+
+            {/* Direct Financial Cash Reward Option (Admin/Manager) */}
+            {(currentUser?.role === 'admin' || currentUser?.role === 'manager') && onOpenReward && (
+              <div className="pt-2 mt-2 border-t border-amber-200/60 flex items-center justify-between flex-wrap gap-2">
+                <div className="text-[11px] text-amber-900 font-medium flex items-center gap-1.5">
+                  <DollarSign className="w-3.5 h-3.5 text-emerald-600 font-bold" />
+                  <span>Reward employee with money & cash bonus for completing this task</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const firstAssignee = users.find(u => assignees.includes(u.id));
+                    onOpenReward(task, firstAssignee || null);
+                  }}
+                  className="px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-bold rounded-lg shadow-2xs transition-all cursor-pointer flex items-center gap-1.5"
+                >
+                  <DollarSign className="w-3.5 h-3.5 text-amber-300" />
+                  <span>Reward with Money</span>
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Assignees Selection */}

@@ -31,6 +31,7 @@ import {
 import { api } from '../services/api';
 import { useLanguage } from '../LanguageContext';
 import UploadMemberImageModal from './UploadMemberImageModal';
+import brandLogo from '../assets/logo.png';
 
 export default function OnboardingHub({ users = [], onRefresh, onOpenOnboardModal, currentUser, onUpdateCurrentUser }) {
   const { t } = useLanguage();
@@ -73,6 +74,40 @@ export default function OnboardingHub({ users = [], onRefresh, onOpenOnboardModa
   const [checklistLoading, setChecklistLoading] = useState(false);
   const [teamTasks, setTeamTasks] = useState([]);
 
+  // Crisp Centered Confirmation Modal State
+  const [confirmModal, setConfirmModal] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    confirmText: 'Delete',
+    cancelText: 'Cancel',
+    isDanger: true,
+    onConfirm: null
+  });
+
+  // Top-Right Floating Toast State (2s duration: slide-in from right, slide-out to right)
+  const [toast, setToast] = useState(null); // { id, message, type, exiting: boolean }
+
+  const showToast = (message, type = 'success') => {
+    const id = Date.now();
+    setToast({ id, message, type, exiting: false });
+
+    // Begin slide-out after 2 seconds
+    setTimeout(() => {
+      setToast(current => {
+        if (current?.id === id) {
+          return { ...current, exiting: true };
+        }
+        return current;
+      });
+    }, 2000);
+
+    // Completely unmount after exit animation finishes
+    setTimeout(() => {
+      setToast(current => (current?.id === id ? null : current));
+    }, 2280);
+  };
+
   const loadCommonTasks = async () => {
     try {
       setLoadingCommonTasks(true);
@@ -103,31 +138,39 @@ export default function OnboardingHub({ users = [], onRefresh, onOpenOnboardModa
       });
       setCommonTasks(prev => [...prev, created]);
       setNewCommonTitle('');
-      setSyncStatusMsg('Common task added! Every new user will now automatically receive this task.');
-      setTimeout(() => setSyncStatusMsg(''), 4500);
+      showToast('Common onboarding task created successfully!');
     } catch (err) {
-      alert(err.message || 'Failed to create common task');
+      showToast(err.message || 'Failed to create common task', 'error');
     }
   };
 
-  const handleDeleteCommonTask = async (taskId) => {
-    if (!window.confirm('Are you sure you want to remove this task from the common template?')) return;
-    try {
-      await api.deleteCommonOnboardingTask(taskId);
-      setCommonTasks(prev => prev.filter(t => t.id !== taskId));
-    } catch (err) {
-      alert(err.message || 'Failed to remove common task');
-    }
+  const handleDeleteCommonTask = (taskId) => {
+    setConfirmModal({
+      isOpen: true,
+      title: 'Remove Common Task',
+      message: 'Are you sure you want to remove this task from the common template? New members will no longer automatically receive this onboarding task.',
+      confirmText: 'Remove Task',
+      cancelText: 'Cancel',
+      isDanger: true,
+      onConfirm: async () => {
+        try {
+          await api.deleteCommonOnboardingTask(taskId);
+          setCommonTasks(prev => prev.filter(t => t.id !== taskId));
+          showToast('Common task removed from template.');
+        } catch (err) {
+          showToast(err.message || 'Failed to remove common task', 'error');
+        }
+      }
+    });
   };
 
   const handleSyncCommonTasksToAll = async () => {
     try {
       const res = await api.syncCommonOnboardingTasks();
-      setSyncStatusMsg(`Successfully assigned common tasks across all ${res.syncedUsersCount} active members!`);
+      showToast(`Successfully assigned common tasks to ${res.syncedUsersCount} active members!`);
       if (onRefresh) onRefresh();
-      setTimeout(() => setSyncStatusMsg(''), 5000);
     } catch (err) {
-      alert(err.message || 'Failed to sync common tasks');
+      showToast(err.message || 'Failed to sync common tasks', 'error');
     }
   };
 
@@ -172,7 +215,9 @@ export default function OnboardingHub({ users = [], onRefresh, onOpenOnboardModa
 
       setNameSubmitted(true);
       if (shouldAwardNameXp) {
-        setXpAwardedPopup(true);
+        showToast('Name saved! +5 XP earned! 🎁');
+      } else {
+        showToast('Full name updated successfully!');
       }
 
       if (onUpdateCurrentUser) {
@@ -191,7 +236,7 @@ export default function OnboardingHub({ users = [], onRefresh, onOpenOnboardModa
         setWizardStep(2);
       }, shouldAwardNameXp ? 1400 : 300);
     } catch (err) {
-      alert(err.message || 'Failed to save name');
+      showToast(err.message || 'Failed to save name', 'error');
     } finally {
       setSavingName(false);
     }
@@ -218,21 +263,33 @@ export default function OnboardingHub({ users = [], onRefresh, onOpenOnboardModa
     if (!editingTask || !editTitle.trim()) return;
     try {
       setSavingEdit(true);
-      const updated = await api.updateOnboardingTask(editingTask.id, {
-        title: editTitle.trim(),
-        category: editCategory,
-        due_date: editDueDate,
-        xp_reward: Number(editXpReward) || 35,
-        actor_name: currentUser?.full_name || 'User'
-      });
-      // Update in team tasks
-      setTeamTasks(prev => prev.map(t => t.id === editingTask.id ? { ...t, ...updated } : t));
-      // Update in user tasks
-      setUserTasks(prev => prev.map(t => t.id === editingTask.id ? { ...t, ...updated } : t));
+      if (editingTask.isCommonTask) {
+        const updated = await api.updateCommonOnboardingTask(editingTask.id, {
+          title: editTitle.trim(),
+          category: editCategory,
+          xp_reward: Number(editXpReward) || 35,
+          actor_name: currentUser?.full_name || 'Admin'
+        });
+        setCommonTasks(prev => prev.map(t => t.id === editingTask.id ? { ...t, ...updated } : t));
+        showToast('Common template task updated successfully!');
+      } else {
+        const updated = await api.updateOnboardingTask(editingTask.id, {
+          title: editTitle.trim(),
+          category: editCategory,
+          due_date: editDueDate,
+          xp_reward: Number(editXpReward) || 35,
+          actor_name: currentUser?.full_name || 'User'
+        });
+        // Update in team tasks
+        setTeamTasks(prev => prev.map(t => t.id === editingTask.id ? { ...t, ...updated } : t));
+        // Update in user tasks
+        setUserTasks(prev => prev.map(t => t.id === editingTask.id ? { ...t, ...updated } : t));
+        showToast('Onboarding task updated successfully!');
+      }
       setEditingTask(null);
       if (onRefresh) onRefresh();
     } catch (err) {
-      alert(err.message || 'Failed to update task');
+      showToast(err.message || 'Failed to update task', 'error');
     } finally {
       setSavingEdit(false);
     }
@@ -357,23 +414,49 @@ export default function OnboardingHub({ users = [], onRefresh, onOpenOnboardModa
       });
       setUserTasks(prev => [...prev, created]);
       setNewTitle('');
+      showToast('Onboarding task assigned successfully!');
       onRefresh();
     } catch (err) {
-      alert(err.message || 'Failed to assign onboarding task');
+      showToast(err.message || 'Failed to assign onboarding task', 'error');
     } finally {
       setAddingTask(false);
     }
   };
 
-  const handleDeleteTask = async (taskId) => {
-    if (!confirm(t('onboarding.deleteTaskConfirm'))) return;
-    try {
-      await api.deleteOnboardingTask(taskId);
-      setUserTasks(prev => prev.filter(t => t.id !== taskId));
-      onRefresh();
-    } catch (err) {
-      alert(err.message || 'Failed to delete task');
-    }
+  const handleDeleteTask = (taskId) => {
+    setConfirmModal({
+      isOpen: true,
+      title: 'Delete Onboarding Task',
+      message: t('onboarding.deleteTaskConfirm') || 'Are you sure you want to delete this onboarding task? This action cannot be undone.',
+      confirmText: 'Delete Task',
+      cancelText: 'Cancel',
+      isDanger: true,
+      onConfirm: async () => {
+        try {
+          const res = await api.deleteOnboardingTask(taskId);
+          setUserTasks(prev => prev.filter(t => t.id !== taskId));
+          setTeamTasks(prev => prev.filter(t => t.id !== taskId));
+          if (selectedUser && res) {
+            setSelectedUser(prev => ({
+              ...prev,
+              onboarding_progress: res.progressPercent ?? prev.onboarding_progress,
+              status: res.userStatus ?? prev.status
+            }));
+          }
+          if (currentUser && onUpdateCurrentUser && res) {
+            onUpdateCurrentUser({
+              ...currentUser,
+              onboarding_progress: res.progressPercent ?? currentUser.onboarding_progress,
+              status: res.userStatus ?? currentUser.status
+            });
+          }
+          showToast('Onboarding task deleted successfully.');
+          onRefresh();
+        } catch (err) {
+          showToast(err.message || 'Failed to delete task', 'error');
+        }
+      }
+    });
   };
 
   return (
@@ -673,7 +756,7 @@ export default function OnboardingHub({ users = [], onRefresh, onOpenOnboardModa
                           </div>
                         </div>
 
-                        {/* Edit Task Button */}
+                        {/* Action Buttons: Edit and Delete */}
                         <div className="flex items-center gap-1 shrink-0 pt-0.5">
                           <button
                             type="button"
@@ -685,6 +768,18 @@ export default function OnboardingHub({ users = [], onRefresh, onOpenOnboardModa
                             title="Edit task description or details"
                           >
                             <Edit2 className="w-4 h-4" />
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteTask(task.id);
+                            }}
+                            className="p-1.5 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                            title="Remove task"
+                          >
+                            <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
                       </div>
@@ -1329,14 +1424,24 @@ export default function OnboardingHub({ users = [], onRefresh, onOpenOnboardModa
                       </span>
 
                       {canOnboard && (
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteCommonTask(t.id)}
-                          className="p-1.5 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                          title="Delete common task"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => startEditTask({ ...t, isCommonTask: true })}
+                            className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors cursor-pointer"
+                            title="Edit common task"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteCommonTask(t.id)}
+                            className="p-1.5 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                            title="Delete common task"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -1415,32 +1520,41 @@ export default function OnboardingHub({ users = [], onRefresh, onOpenOnboardModa
 
                 <div>
                   <label className="text-xs font-bold text-slate-700 block mb-1.5">XP Reward</label>
-                  <select
-                    disabled={!isAdmin && !isManager}
-                    value={editXpReward}
-                    onChange={(e) => setEditXpReward(Number(e.target.value))}
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl font-bold text-amber-800 focus:outline-emerald-500 disabled:opacity-60"
-                  >
-                    <option value={20}>+20 XP</option>
-                    <option value={30}>+30 XP</option>
-                    <option value={35}>+35 XP</option>
-                    <option value={40}>+40 XP</option>
-                    <option value={50}>+50 XP</option>
-                    <option value={75}>+75 XP</option>
-                    <option value={100}>+100 XP</option>
-                  </select>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min="0"
+                      disabled={!isAdmin && !isManager}
+                      value={editXpReward}
+                      onChange={(e) => setEditXpReward(e.target.value === '' ? '' : Number(e.target.value))}
+                      placeholder="e.g. 50"
+                      className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl font-bold text-amber-800 focus:outline-emerald-500 disabled:opacity-60 pr-10 font-mono"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-amber-700 pointer-events-none">
+                      XP
+                    </span>
+                  </div>
                 </div>
               </div>
 
-              <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1.5">Due Date</label>
-                <input
-                  type="date"
-                  value={editDueDate}
-                  onChange={(e) => setEditDueDate(e.target.value)}
-                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-emerald-500 text-slate-700"
-                />
-              </div>
+              {!editingTask.isCommonTask && (
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1.5">Due Date</label>
+                  <input
+                    type="date"
+                    value={editDueDate}
+                    onChange={(e) => setEditDueDate(e.target.value)}
+                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-emerald-500 text-slate-700"
+                  />
+                </div>
+              )}
+
+              {editingTask.isCommonTask && (
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-[11px] text-amber-800 flex items-center gap-2">
+                  <img src={brandLogo} alt="Logo" className="w-4 h-4 object-contain shrink-0" />
+                  <span>Updates to this common template task will apply to future employees and roadmap assignments.</span>
+                </div>
+              )}
 
               {Number(editingTask.xp_claimed) === 1 && (
                 <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-[11px] text-emerald-800 flex items-center gap-2">
@@ -1529,9 +1643,10 @@ export default function OnboardingHub({ users = [], onRefresh, onOpenOnboardModa
                   }));
 
                   if (onRefresh) onRefresh();
+                  showToast('Candidate profile updated successfully!');
                   setShowEditProfileModal(false);
                 } catch (err) {
-                  alert(err.message || 'Failed to update member profile');
+                  showToast(err.message || 'Failed to update member profile', 'error');
                 } finally {
                   setSavingCandidateProfile(false);
                 }
@@ -1617,6 +1732,89 @@ export default function OnboardingHub({ users = [], onRefresh, onOpenOnboardModa
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Crisp Centered Confirmation Dialog / Toast Modal */}
+      {confirmModal.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn">
+          <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-200/90 text-center space-y-4 animate-scaleUp">
+            <div className={`w-14 h-14 rounded-2xl mx-auto flex items-center justify-center ${
+              confirmModal.isDanger 
+                ? 'bg-rose-50 text-rose-600 border border-rose-100 shadow-sm shadow-rose-500/10' 
+                : 'bg-emerald-50 text-emerald-600 border border-emerald-100'
+            }`}>
+              {confirmModal.isDanger ? (
+                <Trash2 className="w-6 h-6 text-rose-600" />
+              ) : (
+                <AlertCircle className="w-6 h-6 text-emerald-600" />
+              )}
+            </div>
+
+            <div className="space-y-1.5">
+              <h3 className="text-lg font-extrabold text-slate-900 tracking-tight">
+                {confirmModal.title}
+              </h3>
+              <p className="text-xs text-slate-500 leading-relaxed px-2">
+                {confirmModal.message}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+                className="w-full py-2.5 px-4 text-xs font-bold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200/80 rounded-xl transition-colors cursor-pointer"
+              >
+                {confirmModal.cancelText || 'Cancel'}
+              </button>
+
+              <button
+                type="button"
+                onClick={async () => {
+                  const action = confirmModal.onConfirm;
+                  setConfirmModal(prev => ({ ...prev, isOpen: false }));
+                  if (action) await action();
+                }}
+                className={`w-full py-2.5 px-4 text-xs font-bold text-white rounded-xl shadow-md transition-all cursor-pointer ${
+                  confirmModal.isDanger
+                    ? 'bg-rose-600 hover:bg-rose-700 shadow-rose-600/20'
+                    : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20'
+                }`}
+              >
+                {confirmModal.confirmText || 'Yes, Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Top-Right Floating Toast Notification (Slides in from right, slides out to right, 2s duration) */}
+      {toast && (
+        <div className={`fixed top-6 right-6 z-50 pointer-events-auto transition-transform ${
+          toast.exiting ? 'toast-slide-out' : 'toast-slide-in'
+        }`}>
+          <div className={`flex items-center gap-3 px-4 py-3 rounded-2xl shadow-xl border text-xs font-bold backdrop-blur-md ${
+            toast.type === 'error'
+              ? 'bg-rose-600 text-white border-rose-400 shadow-rose-700/30'
+              : toast.type === 'info'
+                ? 'bg-sky-600 text-white border-sky-400 shadow-sky-700/30'
+                : 'bg-emerald-600 text-white border-emerald-400 shadow-emerald-700/30'
+          }`}>
+            {toast.type === 'error' ? (
+              <AlertCircle className="w-4 h-4 text-white shrink-0" />
+            ) : (
+              <CheckCircle2 className="w-4 h-4 text-amber-300 shrink-0" />
+            )}
+            <span className="pr-1">{toast.message}</span>
+            <button
+              type="button"
+              onClick={() => setToast(current => current ? { ...current, exiting: true } : null)}
+              className="p-1 text-white/80 hover:text-white rounded-lg hover:bg-white/20 transition-colors ml-1 cursor-pointer"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
           </div>
         </div>
       )}

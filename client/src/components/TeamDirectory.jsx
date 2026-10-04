@@ -17,9 +17,9 @@ import {
   MoreVertical,
   Edit2,
   X,
-  Check,
   Save,
-  Camera
+  Camera,
+  DollarSign
 } from 'lucide-react';
 import { api } from '../services/api';
 
@@ -30,7 +30,7 @@ const ROLE_BADGES = {
   'guest': 'bg-slate-100 text-slate-600 border-slate-200'
 };
 
-export default function TeamDirectory({ users = [], onRefresh, onOpenOnboardModal, currentUser, onUpdateCurrentUser }) {
+export default function TeamDirectory({ users = [], onRefresh, onOpenOnboardModal, currentUser, onUpdateCurrentUser, onOpenReward }) {
   const [search, setSearch] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All'); // 'All', 'active', 'deactivated'
@@ -390,12 +390,25 @@ export default function TeamDirectory({ users = [], onRefresh, onOpenOnboardModa
                     <button
                       type="button"
                       onClick={() => handleOpenEdit(user)}
-                      className="py-1.5 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer border border-slate-200 hover:border-emerald-400 bg-white hover:bg-emerald-50/50 text-slate-700 hover:text-emerald-800"
+                      className="py-1.5 px-2.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 transition-colors cursor-pointer border border-slate-200 hover:border-emerald-400 bg-white hover:bg-emerald-50/50 text-slate-700 hover:text-emerald-800"
                       title="Edit member name and role"
                     >
                       <Edit2 className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>Edit Info</span>
+                      <span>Edit</span>
                     </button>
+
+                    {/* Reward Member with Money */}
+                    {onOpenReward && (
+                      <button
+                        type="button"
+                        onClick={() => onOpenReward(user)}
+                        className="py-1.5 px-2.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1 transition-all cursor-pointer bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200"
+                        title={`Reward ${user.full_name} with money & bonus compensation`}
+                      >
+                        <DollarSign className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Reward</span>
+                      </button>
+                    )}
 
                     {isSelf ? (
                       <div className="flex-1 py-1.5 px-2 rounded-lg text-[11px] font-semibold text-slate-400 bg-slate-50 border border-slate-200/80 text-center select-none">

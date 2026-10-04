@@ -15,6 +15,7 @@ import {
   ArrowLeft
 } from 'lucide-react';
 import { api } from '../services/api';
+import brandLogo from '../assets/logo.png';
 
 // SVG Icons for the 5 requested Social Auth providers
 function GoogleIcon() {
@@ -181,8 +182,8 @@ export default function AuthModal({ onClose, onAuthSuccess, isRequired = false, 
           )}
 
           <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-semibold mb-2">
-            <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-            <span>ApexBoard Enterprise Security</span>
+            <img src={brandLogo} alt="BizProject Logo" className="w-4 h-4 object-contain rounded-xs" />
+            <span>BizProject</span>
           </div>
 
           <h2 className="text-xl font-bold text-slate-900 tracking-tight">

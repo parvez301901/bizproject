@@ -267,6 +267,25 @@ function setupSQLiteSchema() {
       order_index INTEGER DEFAULT 0,
       created_at TEXT DEFAULT (datetime('now'))
     );
+
+    CREATE TABLE IF NOT EXISTS earnings_rewards (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      task_id TEXT,
+      project_id TEXT,
+      amount REAL NOT NULL,
+      currency TEXT DEFAULT 'USD',
+      reward_type TEXT DEFAULT 'Task Completion Bonus',
+      notes TEXT,
+      awarded_by TEXT NOT NULL,
+      created_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE SET NULL,
+      FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE SET NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_earnings_rewards_user ON earnings_rewards(user_id);
+    CREATE INDEX IF NOT EXISTS idx_earnings_rewards_task ON earnings_rewards(task_id);
+    CREATE INDEX IF NOT EXISTS idx_earnings_rewards_created ON earnings_rewards(created_at);
   `);
 }
 
@@ -422,6 +441,19 @@ async function setupPostgresSchema() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
 
+      CREATE TABLE IF NOT EXISTS earnings_rewards (
+        id VARCHAR(64) PRIMARY KEY,
+        user_id VARCHAR(64) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        task_id VARCHAR(64) REFERENCES tasks(id) ON DELETE SET NULL,
+        project_id VARCHAR(64) REFERENCES projects(id) ON DELETE SET NULL,
+        amount NUMERIC NOT NULL,
+        currency VARCHAR(16) DEFAULT 'USD',
+        reward_type VARCHAR(64) DEFAULT 'Task Completion Bonus',
+        notes TEXT,
+        awarded_by VARCHAR(64) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
       CREATE INDEX IF NOT EXISTS idx_tasks_board ON tasks(board_id);
       CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
       CREATE INDEX IF NOT EXISTS idx_tasks_priority ON tasks(priority);
@@ -431,6 +463,8 @@ async function setupPostgresSchema() {
       CREATE INDEX IF NOT EXISTS idx_messages_type ON messages(recipient_type);
       CREATE INDEX IF NOT EXISTS idx_instruction_videos_uploader ON instruction_videos(uploader_id);
       CREATE INDEX IF NOT EXISTS idx_instruction_videos_audience ON instruction_videos(audience_type);
+      CREATE INDEX IF NOT EXISTS idx_earnings_rewards_user ON earnings_rewards(user_id);
+      CREATE INDEX IF NOT EXISTS idx_earnings_rewards_task ON earnings_rewards(task_id);
     `);
 
     // Safe dynamic column additions for PostgreSQL

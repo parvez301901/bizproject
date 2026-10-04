@@ -604,5 +604,33 @@ export const api = {
     const json = await res.json();
     if (!res.ok) throw new Error(json.error || 'Failed to delete video');
     return json;
+  },
+
+  // Financial Earnings & Rewards API
+  async getRewards(params = {}) {
+    const query = new URLSearchParams(params).toString();
+    const res = await authFetch(`${API_BASE}/rewards${query ? `?${query}` : ''}`);
+    if (!res.ok) throw new Error('Failed to fetch rewards and earnings');
+    return res.json();
+  },
+
+  async createReward(data) {
+    const res = await authFetch(`${API_BASE}/rewards`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || 'Failed to grant reward');
+    return json;
+  },
+
+  async deleteReward(rewardId, actorName) {
+    const res = await authFetch(`${API_BASE}/rewards/${rewardId}?actor_name=${encodeURIComponent(actorName || 'Admin')}`, {
+      method: 'DELETE'
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || 'Failed to delete reward');
+    return json;
   }
 };

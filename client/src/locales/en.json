@@ -1,7 +1,7 @@
 {
   "common": {
-    "appName": "ApexBoard",
-    "appTagline": "Enterprise HQ",
+    "appName": "BizProject",
+    "appTagline": "Workspace & Project Hub",
     "loading": "Loading...",
     "save": "Save",
     "cancel": "Cancel",
@@ -51,6 +51,7 @@
     "projects": "Projects",
     "reports": "Reports",
     "leaderboard": "Leaderboard",
+    "earnings": "Earnings & Rewards",
     "recoveryVault": "Recovery Vault",
     "auditTrail": "Audit Trail (Logs)",
     "projectsAndBoards": "Projects & Boards",

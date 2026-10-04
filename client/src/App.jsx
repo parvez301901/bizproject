@@ -49,6 +49,9 @@ import DevPageIndicator from './components/DevPageIndicator';
 import HelpGuideModal from './components/HelpGuideModal';
 import HelpFloatingButton from './components/HelpFloatingButton';
 import AdminSettingsModal from './components/AdminSettingsModal';
+import EarningsView from './components/EarningsView';
+import RewardModal from './components/RewardModal';
+import brandLogo from './assets/logo.png';
 import { api } from './services/api';
 
 export default function App() {
@@ -124,6 +127,9 @@ export default function App() {
   const [showNoticeModal, setShowNoticeModal] = useState(false);
   const [showHelpGuideModal, setShowHelpGuideModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showRewardModal, setShowRewardModal] = useState(false);
+  const [rewardModalUser, setRewardModalUser] = useState(null);
+  const [rewardModalTask, setRewardModalTask] = useState(null);
   const [hideDevFileIndicator, setHideDevFileIndicator] = useState(() => {
     try {
       return localStorage.getItem('apex_hide_dev_file') === 'true';
@@ -365,10 +371,12 @@ export default function App() {
               <Menu className="w-5 h-5" />
             </button>
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-emerald-600 to-emerald-400 flex items-center justify-center text-white shadow-2xs">
-                <Sparkles className="w-4 h-4" />
-              </div>
-              <span className="font-bold text-slate-800 text-sm tracking-tight">Apex Workspace</span>
+              <img 
+                src={brandLogo} 
+                alt="BizProject Logo" 
+                className="w-7 h-7 object-contain rounded-lg shadow-2xs" 
+              />
+              <span className="font-bold text-slate-800 text-sm tracking-tight">BizProject</span>
             </div>
           </div>
 
@@ -587,9 +595,16 @@ export default function App() {
           {activeTab === 'dashboard' && (
             <AdminOverview
               stats={stats}
+              loading={loading}
               onNavigateToOnboard={() => setActiveTab('onboarding')}
               onNavigateToProject={() => setActiveTab('project')}
               onNavigateToLeaderboard={() => setActiveTab('leaderboard')}
+              onNavigateToEarnings={() => setActiveTab('earnings')}
+              onOpenReward={() => {
+                setRewardModalUser(null);
+                setRewardModalTask(null);
+                setShowRewardModal(true);
+              }}
               currentUser={currentUser}
               onOpenLogWork={() => setShowLogWorkModal(true)}
               onOpenNotice={() => setShowNoticeModal(true)}
@@ -620,6 +635,19 @@ export default function App() {
             />
           )}
 
+          {activeTab === 'earnings' && (
+            <EarningsView
+              currentUser={currentUser}
+              users={activeUsers}
+              projects={projects}
+              onOpenRewardModal={() => {
+                setRewardModalUser(null);
+                setRewardModalTask(null);
+                setShowRewardModal(true);
+              }}
+            />
+          )}
+
           {activeTab === 'onboarding' && (
             <OnboardingHub
               users={activeUsers}
@@ -644,6 +672,11 @@ export default function App() {
                 setCurrentUser(updatedUser);
                 localStorage.setItem('apex_user', JSON.stringify(updatedUser));
                 loadInitialData();
+              }}
+              onOpenReward={(targetUser) => {
+                setRewardModalUser(targetUser);
+                setRewardModalTask(null);
+                setShowRewardModal(true);
               }}
             />
           )}
@@ -744,6 +777,11 @@ export default function App() {
             setInspectedTask(t);
             setShowLogWorkModal(true);
           }}
+          onOpenReward={(t, targetUser) => {
+            setRewardModalTask(t);
+            setRewardModalUser(targetUser || null);
+            setShowRewardModal(true);
+          }}
         />
       )}
 
@@ -840,6 +878,24 @@ export default function App() {
         onOpenMessageBoard={() => {
           setActiveTab('messages');
           setShowNoticeModal(false);
+        }}
+      />
+
+      {/* Admin Financial Reward Modal */}
+      <RewardModal
+        isOpen={showRewardModal}
+        onClose={() => {
+          setShowRewardModal(false);
+          setRewardModalUser(null);
+          setRewardModalTask(null);
+        }}
+        users={activeUsers}
+        projects={projects}
+        initialUser={rewardModalUser}
+        initialTask={rewardModalTask}
+        currentUser={currentUser}
+        onRewardSuccess={() => {
+          loadInitialData();
         }}
       />
 

@@ -1040,9 +1040,9 @@ app.post('/api/users/:id/onboarding', async (req, res) => {
 
     // Recalculate user onboarding progress
     const allTasks = await query('SELECT count(*) as total, sum(is_completed) as completed FROM onboarding_tasks WHERE user_id = ?', [user.id]);
-    const total = allTasks[0].total || 1;
-    const completed = allTasks[0].completed || 0;
-    const progressPercent = Math.round((completed / total) * 100);
+    const total = Number(allTasks[0]?.total || 0);
+    const completed = Number(allTasks[0]?.completed || 0);
+    const progressPercent = total > 0 ? Math.round((completed / total) * 100) : 0;
 
     const userStatus = progressPercent === 100 ? 'active' : 'onboarding';
     await query('UPDATE users SET onboarding_progress = ?, status = ? WHERE id = ?', [progressPercent, userStatus, user.id]);
@@ -1109,14 +1109,14 @@ app.delete('/api/onboarding/:taskId', async (req, res) => {
 
     // Recalculate user onboarding progress
     const allTasks = await query('SELECT count(*) as total, sum(is_completed) as completed FROM onboarding_tasks WHERE user_id = ?', [task.user_id]);
-    const total = allTasks[0].total || 1;
-    const completed = allTasks[0].completed || 0;
-    const progressPercent = Math.round((completed / total) * 100);
+    const total = Number(allTasks[0]?.total || 0);
+    const completed = Number(allTasks[0]?.completed || 0);
+    const progressPercent = total > 0 ? Math.round((completed / total) * 100) : 0;
 
     const userStatus = progressPercent === 100 ? 'active' : 'onboarding';
     await query('UPDATE users SET onboarding_progress = ?, status = ? WHERE id = ?', [progressPercent, userStatus, task.user_id]);
 
-    res.json({ success: true, message: 'Onboarding task removed' });
+    res.json({ success: true, message: 'Onboarding task removed', progressPercent, userStatus });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -1179,9 +1179,9 @@ app.put('/api/onboarding/:taskId/toggle', async (req, res) => {
 
     // Recalculate user onboarding progress
     const allTasks = await query('SELECT count(*) as total, sum(is_completed) as completed FROM onboarding_tasks WHERE user_id = ?', [task.user_id]);
-    const total = allTasks[0].total || 1;
-    const completed = allTasks[0].completed || 0;
-    const progressPercent = Math.round((completed / total) * 100);
+    const total = Number(allTasks[0]?.total || 0);
+    const completed = Number(allTasks[0]?.completed || 0);
+    const progressPercent = total > 0 ? Math.round((completed / total) * 100) : 0;
 
     const userStatus = progressPercent === 100 ? 'active' : 'onboarding';
     await query('UPDATE users SET onboarding_progress = ?, status = ? WHERE id = ?', [progressPercent, userStatus, task.user_id]);
@@ -1397,7 +1397,7 @@ app.delete('/api/common-onboarding-tasks/:id', async (req, res) => {
     await logActivity({
       entity_type: 'onboarding',
       entity_id: req.params.id,
-      user_name: req.body.actor_name || 'Admin',
+      user_name: req.body?.actor_name || req.query?.actor_name || 'Admin',
       action: 'COMMON_TASK_DELETED',
       details: `Removed common onboarding task template "${task.title}"`
     });
@@ -2752,13 +2752,14 @@ app.get('/api/tasks/:id/subtasks', async (req, res) => {
 // --- 7. ADMIN ANALYTICS & STATS ---
 app.get('/api/dashboard/stats', async (req, res) => {
   try {
-    const [totalTasksRes, completedTasksRes, totalUsersRes, deactivatedUsersRes, onboardingRes, projectsRes] = await Promise.all([
+    const [totalTasksRes, completedTasksRes, totalUsersRes, deactivatedUsersRes, onboardingRes, projectsRes, rewardsRes] = await Promise.all([
       query('SELECT count(*) as count FROM tasks'),
       query("SELECT count(*) as count FROM tasks WHERE status = 'Done'"),
       query("SELECT count(*) as count FROM users WHERE status != 'deactivated'"),
       query("SELECT count(*) as count FROM users WHERE status = 'deactivated'"),
       query("SELECT count(*) as count FROM users WHERE status = 'onboarding'"),
-      query('SELECT count(*) as count FROM projects')
+      query('SELECT count(*) as count FROM projects'),
+      query('SELECT COALESCE(sum(amount), 0) as total_amount, count(*) as count FROM earnings_rewards')
     ]);
 
     const totalTasks = totalTasksRes[0]?.count || 0;
@@ -2767,6 +2768,8 @@ app.get('/api/dashboard/stats', async (req, res) => {
     const deactivatedUsers = deactivatedUsersRes[0]?.count || 0;
     const onboardingUsers = onboardingRes[0]?.count || 0;
     const totalProjects = projectsRes[0]?.count || 0;
+    const totalRewardPayout = Number(rewardsRes[0]?.total_amount || 0);
+    const totalRewardCount = Number(rewardsRes[0]?.count || 0);
 
     const statusCounts = await query('SELECT status, count(*) as count FROM tasks GROUP BY status');
     const priorityCounts = await query('SELECT priority, count(*) as count FROM tasks GROUP BY priority');
@@ -2795,7 +2798,9 @@ app.get('/api/dashboard/stats', async (req, res) => {
         totalUsers,
         deactivatedUsers,
         onboardingUsers,
-        totalProjects
+        totalProjects,
+        totalRewardPayout,
+        totalRewardCount
       },
       statusDistribution: statusCounts,
       priorityDistribution: priorityCounts,
@@ -2816,7 +2821,8 @@ app.get('/api/gamification/leaderboard', async (req, res) => {
         u.id, u.full_name, u.email, u.avatar_url, u.role, u.department, u.designation, u.xp, u.level, u.status,
         (SELECT count(*) FROM tasks t WHERE t.status = 'Done' AND t.assignee_ids LIKE '%' || u.id || '%') as completed_tasks_count,
         (SELECT count(*) FROM onboarding_tasks ot WHERE ot.user_id = u.id AND ot.is_completed = 1) as completed_onboarding_count,
-        (SELECT COALESCE(sum(wl.hours), 0) FROM work_logs wl WHERE wl.user_id = u.id) as total_logged_hours
+        (SELECT COALESCE(sum(wl.hours), 0) FROM work_logs wl WHERE wl.user_id = u.id) as total_logged_hours,
+        (SELECT COALESCE(sum(er.amount), 0) FROM earnings_rewards er WHERE er.user_id = u.id) as total_reward_earnings
       FROM users u
       WHERE u.status != 'deactivated'
       ORDER BY u.xp DESC, u.full_name ASC
@@ -2830,7 +2836,8 @@ app.get('/api/gamification/leaderboard', async (req, res) => {
         ...u,
         xp,
         level: levelInfo.level,
-        levelInfo
+        levelInfo,
+        total_reward_earnings: Number(u.total_reward_earnings || 0)
       };
     });
 
@@ -3519,6 +3526,220 @@ app.delete('/api/videos/:id', optionalAuth, async (req, res) => {
     });
 
     res.json({ success: true, message: 'Video removed successfully' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+// --- 11. FINANCIAL EARNINGS & REWARDS (TASK COMPLETION & ADMIN BONUSES) ---
+// 1. Get earnings list with optional filters (for employee/team dashboard and admin review)
+app.get('/api/rewards', optionalAuth, async (req, res) => {
+  try {
+    const callerRole = (req.user && req.user.role) || req.headers['x-user-role'] || 'member';
+    const callerId = (req.user && req.user.id) || req.headers['x-user-id'];
+    const { user_id, task_id, project_id, limit = 100 } = req.query;
+
+    let targetUserId = user_id;
+    // If not admin/manager, employee can only view their own earnings
+    if (callerRole !== 'admin' && callerRole !== 'manager') {
+      targetUserId = callerId;
+    }
+
+    let sql = `
+      SELECT 
+        er.*,
+        u.full_name as user_name,
+        u.email as user_email,
+        u.avatar_url as user_avatar,
+        u.designation as user_designation,
+        t.title as task_title,
+        p.name as project_name
+      FROM earnings_rewards er
+      LEFT JOIN users u ON u.id = er.user_id
+      LEFT JOIN tasks t ON t.id = er.task_id
+      LEFT JOIN projects p ON p.id = er.project_id
+      WHERE 1=1
+    `;
+    const params = [];
+
+    if (targetUserId) {
+      sql += ' AND er.user_id = ?';
+      params.push(targetUserId);
+    }
+    if (task_id) {
+      sql += ' AND er.task_id = ?';
+      params.push(task_id);
+    }
+    if (project_id) {
+      sql += ' AND er.project_id = ?';
+      params.push(project_id);
+    }
+
+    sql += ' ORDER BY er.created_at DESC LIMIT ?';
+    params.push(Number(limit) || 100);
+
+    const rows = await query(sql, params);
+
+    // Summary calculation
+    let summarySql = 'SELECT COALESCE(SUM(amount), 0) as total_earnings, COUNT(*) as reward_count FROM earnings_rewards WHERE 1=1';
+    const summaryParams = [];
+    if (targetUserId) {
+      summarySql += ' AND user_id = ?';
+      summaryParams.push(targetUserId);
+    }
+    const summaryRes = await query(summarySql, summaryParams);
+    const totalEarnings = Number(summaryRes[0]?.total_earnings || 0);
+    const rewardCount = Number(summaryRes[0]?.reward_count || 0);
+
+    res.json({
+      rewards: rows,
+      summary: {
+        totalEarnings,
+        rewardCount
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 2. Grant reward / earnings money to an employee (Admin or Manager only)
+app.post('/api/rewards', optionalAuth, async (req, res) => {
+  try {
+    const callerRole = (req.user && req.user.role) || req.headers['x-user-role'] || 'member';
+    const actorName = (req.user && req.user.full_name) || req.headers['x-actor-name'] || req.body.actor_name || 'Admin';
+
+    if (callerRole !== 'admin' && callerRole !== 'manager') {
+      return res.status(403).json({ error: 'Permission denied: Only Admin and Managers can issue financial rewards.' });
+    }
+
+    const {
+      user_id,
+      amount,
+      currency = 'USD',
+      reward_type = 'Task Completion Bonus',
+      task_id = null,
+      project_id = null,
+      notes = ''
+    } = req.body;
+
+    if (!user_id) {
+      return res.status(400).json({ error: 'Recipient team member (user_id) is required.' });
+    }
+    const numAmount = parseFloat(amount);
+    if (isNaN(numAmount) || numAmount <= 0) {
+      return res.status(400).json({ error: 'A valid positive reward amount is required.' });
+    }
+
+    const recipient = await getOne('SELECT id, full_name, email FROM users WHERE id = ?', [user_id]);
+    if (!recipient) {
+      return res.status(404).json({ error: 'Recipient employee not found.' });
+    }
+
+    let taskTitle = null;
+    let projId = project_id;
+    if (task_id) {
+      const task = await getOne(`
+        SELECT t.id, t.title, b.project_id 
+        FROM tasks t
+        JOIN boards b ON b.id = t.board_id
+        WHERE t.id = ?
+      `, [task_id]);
+      if (task) {
+        taskTitle = task.title;
+        if (!projId) projId = task.project_id;
+      }
+    }
+
+    const rewardId = 'rwd_' + uuidv4().substring(0, 8);
+    await query(`
+      INSERT INTO earnings_rewards (id, user_id, task_id, project_id, amount, currency, reward_type, notes, awarded_by)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [
+      rewardId,
+      user_id,
+      task_id || null,
+      projId || null,
+      numAmount,
+      currency,
+      reward_type,
+      notes || '',
+      actorName
+    ]);
+
+    // Send direct notification message to recipient's message board inbox
+    try {
+      const msgId = 'msg_' + uuidv4().substring(0, 8);
+      const rewardNote = notes ? `\n\nNotes: "${notes}"` : '';
+      const taskNote = taskTitle ? ` on task "${taskTitle}"` : '';
+      await query(`
+        INSERT INTO messages (id, sender_id, recipient_type, recipient_id, title, content, priority, category)
+        VALUES (?, ?, 'direct', ?, ?, ?, 'Important', 'Reward Notice')
+      `, [
+        msgId,
+        (req.user && req.user.id) || 'usr_admin',
+        user_id,
+        `💰 You received a reward of ${currency === 'USD' ? '$' : currency + ' '}${numAmount.toFixed(2)}!`,
+        `Congratulations ${recipient.full_name}! You have been awarded a cash reward of ${currency === 'USD' ? '$' : currency + ' '}${numAmount.toFixed(2)} (${reward_type})${taskNote} by ${actorName}.${rewardNote}\n\nCheck your Earnings menu anytime to see your balance statement.`
+      ]);
+    } catch (e) {
+      console.warn('Failed to post direct notification message for reward:', e.message);
+    }
+
+    // Universal Audit Log
+    await logActivity({
+      entity_type: 'earnings_reward',
+      entity_id: rewardId,
+      user_name: actorName,
+      action: 'REWARD_GRANTED',
+      details: `Awarded $${numAmount.toFixed(2)} (${reward_type}) to ${recipient.full_name}${taskTitle ? ` for task "${taskTitle}"` : ''}. Notes: ${notes || 'None'}`
+    });
+
+    const created = await getOne(`
+      SELECT 
+        er.*,
+        u.full_name as user_name,
+        u.email as user_email,
+        u.avatar_url as user_avatar
+      FROM earnings_rewards er
+      JOIN users u ON u.id = er.user_id
+      WHERE er.id = ?
+    `, [rewardId]);
+
+    res.status(201).json({
+      success: true,
+      message: `Successfully rewarded ${recipient.full_name} with $${numAmount.toFixed(2)}`,
+      reward: created
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 3. Delete / reverse reward (Admin only)
+app.delete('/api/rewards/:id', optionalAuth, async (req, res) => {
+  try {
+    const callerRole = (req.user && req.user.role) || req.headers['x-user-role'];
+    const actorName = (req.user && req.user.full_name) || req.headers['x-actor-name'] || req.query.actor_name || 'Admin';
+
+    if (callerRole !== 'admin' && callerRole !== 'manager') {
+      return res.status(403).json({ error: 'Only admins can delete reward entries.' });
+    }
+
+    const { id } = req.params;
+    const reward = await getOne('SELECT er.*, u.full_name FROM earnings_rewards er JOIN users u ON u.id = er.user_id WHERE er.id = ?', [id]);
+    if (!reward) return res.status(404).json({ error: 'Reward record not found' });
+
+    await query('DELETE FROM earnings_rewards WHERE id = ?', [id]);
+
+    await logActivity({
+      entity_type: 'earnings_reward',
+      entity_id: id,
+      user_name: actorName,
+      action: 'REWARD_REMOVED',
+      details: `Removed reward entry of $${Number(reward.amount).toFixed(2)} for ${reward.full_name}`
+    });
+
+    res.json({ success: true, message: 'Reward entry removed' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
