@@ -1,0 +1,23 @@
+name: Keep Render Backend Awake (Bangladesh Hours)
+
+on:
+  schedule:
+    # 02:00 to 11:00 UTC corresponds to 08:00 to 17:00 Bangladesh Time (UTC+6)
+    # GitHub Actions cron runs every 14-15 minutes in this window
+    - cron: '*/14 2-11 * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Run Cron Ping
+        run: node scripts/cron_ping.js
