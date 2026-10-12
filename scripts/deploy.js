@@ -125,10 +125,14 @@ function triggerRender() {
     log('Tip: You can add RENDER_DEPLOY_HOOK_URL in .env to auto-trigger Render builds via webhook.');
     return;
   }
-  log('Triggering Render deployment hook...');
-  https.get(RENDER_HOOK_URL, res => {
-    log(`Render hook triggered! Status: ${res.statusCode}`);
-  }).on('error', e => console.error('Render trigger failed:', e.message));
+  log('Triggering Render deployment hook via POST...');
+  const req = https.request(RENDER_HOOK_URL, { method: 'POST' }, res => {
+    let data = '';
+    res.on('data', chunk => data += chunk);
+    res.on('end', () => log(`Render hook response [${res.statusCode}]: ${data}`));
+  });
+  req.on('error', e => console.error('Render trigger failed:', e.message));
+  req.end();
 }
 
 async function main() {
