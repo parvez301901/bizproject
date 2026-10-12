@@ -7,7 +7,17 @@ const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { initDB, query, getOne, getDbType } = require('./db');
+const { 
+  initDB, 
+  query, 
+  getOne, 
+  getDbType,
+  getSystemSetting,
+  setSystemSetting,
+  getTimezoneOffsetHours,
+  getAppDateString,
+  getAppDateTimeString 
+} = require('./db');
 const { seedData } = require('./seed');
 const { notifyAdminNewUser, isMailConfigured, ADMIN_EMAIL } = require('./email');
 require('dotenv').config();
@@ -1002,6 +1012,75 @@ app.post('/api/admin/test-email', optionalAuth, async (req, res) => {
     }
 
     res.json({ success: true, message: `Test email sent successfully to ${ADMIN_EMAIL}!`, messageId: result.messageId });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin System Settings: Timezone & Global Configuration
+app.get('/api/admin/settings', optionalAuth, async (req, res) => {
+  try {
+    const tzOffset = await getTimezoneOffsetHours();
+    const tzLabel = await getSystemSetting('timezone_label', 'Asia/Dhaka (UTC+6)');
+    const autoTimezone = await getSystemSetting('auto_timezone', 'true');
+    const currentDate = getAppDateString(new Date(), tzOffset);
+    const currentDateTime = getAppDateTimeString(new Date(), tzOffset);
+
+    res.json({
+      timezone_offset: tzOffset,
+      timezone_label: tzLabel,
+      auto_timezone: autoTimezone === 'true',
+      current_server_date: currentDate,
+      current_server_datetime: currentDateTime,
+      utc_now: new Date().toISOString()
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/admin/settings', optionalAuth, async (req, res) => {
+  try {
+    const callerRole = (req.user && req.user.role) || req.headers['x-user-role'];
+    if (callerRole !== 'admin') {
+      return res.status(403).json({ error: 'Permission denied: Only administrators can update system settings.' });
+    }
+
+    const { timezone_offset, timezone_label, auto_timezone, actor_name = 'Admin' } = req.body;
+
+    if (timezone_offset !== undefined) {
+      const numOffset = parseFloat(timezone_offset);
+      if (isNaN(numOffset) || numOffset < -12 || numOffset > 14) {
+        return res.status(400).json({ error: 'Invalid timezone offset. Must be between -12 and +14.' });
+      }
+      await setSystemSetting('timezone_offset', numOffset.toString());
+    }
+
+    if (timezone_label !== undefined) {
+      await setSystemSetting('timezone_label', String(timezone_label));
+    }
+
+    if (auto_timezone !== undefined) {
+      await setSystemSetting('auto_timezone', auto_timezone ? 'true' : 'false');
+    }
+
+    // Log setting modification
+    await logActivity({
+      entity_type: 'settings',
+      entity_id: 'timezone',
+      user_name: actor_name,
+      action: 'SYSTEM_SETTINGS_UPDATED',
+      details: `Updated system timezone: offset=${timezone_offset ?? 'unchanged'}, label=${timezone_label || 'custom'}`
+    });
+
+    const activeOffset = await getTimezoneOffsetHours();
+    res.json({
+      success: true,
+      message: 'System settings updated successfully',
+      timezone_offset: activeOffset,
+      timezone_label: await getSystemSetting('timezone_label', 'Asia/Dhaka (UTC+6)'),
+      current_server_datetime: getAppDateTimeString(new Date(), activeOffset)
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -3052,7 +3131,8 @@ app.post('/api/work-logs', async (req, res) => {
     }
 
     const logId = 'wlog_' + uuidv4().substring(0, 8);
-    const dateToUse = work_date || new Date().toISOString().substring(0, 10);
+    const tzOffset = await getTimezoneOffsetHours();
+    const dateToUse = work_date || getAppDateString(new Date(), tzOffset);
     const numHours = parseFloat(hours) || 0;
 
     await query(`

@@ -632,5 +632,23 @@ export const api = {
     const json = await res.json();
     if (!res.ok) throw new Error(json.error || 'Failed to delete reward');
     return json;
+  },
+
+  // System Settings & Timezone API
+  async getSystemSettings() {
+    const res = await authFetch(`${API_BASE}/admin/settings`);
+    if (!res.ok) throw new Error('Failed to fetch system settings');
+    return res.json();
+  },
+
+  async updateSystemSettings(data) {
+    const res = await authFetch(`${API_BASE}/admin/settings`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || 'Failed to update system settings');
+    return json;
   }
 };

@@ -915,6 +915,7 @@ export default function App() {
           onClose={() => setShowSettingsModal(false)}
           hideDevFileIndicator={hideDevFileIndicator}
           setHideDevFileIndicator={handleToggleHideDevFile}
+          currentUser={currentUser}
         />
       )}
 

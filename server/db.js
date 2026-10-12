@@ -283,6 +283,12 @@ function setupSQLiteSchema() {
       FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE SET NULL,
       FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE SET NULL
     );
+
+    CREATE TABLE IF NOT EXISTS system_settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL,
+      updated_at TEXT DEFAULT (datetime('now'))
+    );
     CREATE INDEX IF NOT EXISTS idx_earnings_rewards_user ON earnings_rewards(user_id);
     CREATE INDEX IF NOT EXISTS idx_earnings_rewards_task ON earnings_rewards(task_id);
     CREATE INDEX IF NOT EXISTS idx_earnings_rewards_created ON earnings_rewards(created_at);
@@ -454,6 +460,12 @@ async function setupPostgresSchema() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
 
+      CREATE TABLE IF NOT EXISTS system_settings (
+        key VARCHAR(128) PRIMARY KEY,
+        value TEXT NOT NULL,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
       CREATE INDEX IF NOT EXISTS idx_tasks_board ON tasks(board_id);
       CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
       CREATE INDEX IF NOT EXISTS idx_tasks_priority ON tasks(priority);
@@ -544,10 +556,63 @@ async function query(sql, params = []) {
   }
 }
 
-// Quick helper to get single row
-async function getOne(sql, params = []) {
-  const rows = await query(sql, params);
-  return rows && rows.length > 0 ? rows[0] : null;
+// App System Settings Cache & Helpers
+let cachedTimezone = null;
+
+async function getSystemSetting(key, defaultValue = null) {
+  try {
+    const row = await getOne('SELECT value FROM system_settings WHERE key = ?', [key]);
+    return row ? row.value : defaultValue;
+  } catch (e) {
+    return defaultValue;
+  }
+}
+
+async function setSystemSetting(key, value) {
+  if (dbType === 'postgres' && pgPool) {
+    await query(`
+      INSERT INTO system_settings (key, value, updated_at) 
+      VALUES (?, ?, CURRENT_TIMESTAMP)
+      ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = CURRENT_TIMESTAMP
+    `, [key, value]);
+  } else if (sqliteDb) {
+    await query(`
+      INSERT INTO system_settings (key, value, updated_at) 
+      VALUES (?, ?, datetime('now'))
+      ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = datetime('now')
+    `, [key, value]);
+  }
+  if (key === 'timezone_offset') {
+    cachedTimezone = parseFloat(value);
+  }
+}
+
+async function getTimezoneOffsetHours() {
+  if (cachedTimezone !== null && !isNaN(cachedTimezone)) {
+    return cachedTimezone;
+  }
+  const val = await getSystemSetting('timezone_offset', '6'); // Default to UTC+6 (Bangladesh)
+  cachedTimezone = parseFloat(val) || 6;
+  return cachedTimezone;
+}
+
+// Convert UTC timestamp / date to system configured timezone (e.g. UTC+6)
+function getAppDate(date = new Date(), offsetHours = 6) {
+  const d = new Date(date);
+  const utc = d.getTime() + (d.getTimezoneOffset() * 60000);
+  return new Date(utc + (offsetHours * 3600000));
+}
+
+// Format YYYY-MM-DD in app configured timezone
+function getAppDateString(date = new Date(), offsetHours = 6) {
+  const target = getAppDate(date, offsetHours);
+  return target.toISOString().substring(0, 10);
+}
+
+// Format YYYY-MM-DD HH:mm:ss in app configured timezone
+function getAppDateTimeString(date = new Date(), offsetHours = 6) {
+  const target = getAppDate(date, offsetHours);
+  return target.toISOString().replace('T', ' ').substring(0, 19);
 }
 
 module.exports = {
@@ -556,5 +621,11 @@ module.exports = {
   getOne,
   getDbType: () => dbType,
   getPool: () => pgPool,
-  getSqlite: () => sqliteDb
+  getSqlite: () => sqliteDb,
+  getSystemSetting,
+  setSystemSetting,
+  getTimezoneOffsetHours,
+  getAppDate,
+  getAppDateString,
+  getAppDateTimeString
 };
