@@ -185,10 +185,9 @@ export const api = {
       method: 'PATCH',
       headers: { 
         'Content-Type': 'application/json',
-        'x-user-role': role,
-        'x-user-id': currentUserId
+        'x-user-role': role
       },
-      body: JSON.stringify({ status, actor_name: actorName })
+      body: JSON.stringify({ status, actor_name: actorName, caller_id: currentUserId })
     });
     const json = await res.json();
     if (!res.ok) throw new Error(json.error || 'Failed to update user status');
@@ -204,11 +203,10 @@ export const api = {
       if (u.id) currentUserId = u.id;
     } catch(e) {}
 
-    const res = await authFetch(`${API_BASE}/users/${userId}?actor_name=${encodeURIComponent(actorName || 'Admin')}`, {
+    const res = await authFetch(`${API_BASE}/users/${userId}?actor_name=${encodeURIComponent(actorName || 'Admin')}&caller_id=${encodeURIComponent(currentUserId)}`, {
       method: 'DELETE',
       headers: {
-        'x-user-role': role,
-        'x-user-id': currentUserId
+        'x-user-role': role
       }
     });
     const json = await res.json();
@@ -348,12 +346,12 @@ export const api = {
       }
     } catch (e) {}
 
-    const headers = { 'x-user-role': role };
-    if (userId) headers['x-user-id'] = userId;
+    const queryParams = new URLSearchParams();
+    if (userId) queryParams.set('user_id', userId);
+    if (role) queryParams.set('role', role);
+    const qs = queryParams.toString();
 
-    const res = await authFetch(`${API_BASE}/projects`, {
-      headers
-    });
+    const res = await authFetch(`${API_BASE}/projects${qs ? `?${qs}` : ''}`);
     if (!res.ok) throw new Error('Failed to fetch projects');
     return res.json();
   },

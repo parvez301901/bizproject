@@ -893,7 +893,7 @@ app.post('/api/upload/image', uploadLimiter, async (req, res) => {
 app.patch('/api/users/:id/status', optionalAuth, async (req, res) => {
   try {
     const callerRole = (req.user && req.user.role) || req.headers['x-user-role'];
-    const callerId = (req.user && req.user.id) || req.headers['x-user-id'];
+    const callerId = (req.user && req.user.id) || req.body.caller_id || req.headers['x-user-id'];
 
     // Rule: Only administrators can deactivate or reactivate members
     if (callerRole !== 'admin') {
@@ -939,7 +939,7 @@ app.patch('/api/users/:id/status', optionalAuth, async (req, res) => {
 app.delete('/api/users/:id', optionalAuth, async (req, res) => {
   try {
     const callerRole = (req.user && req.user.role) || req.headers['x-user-role'];
-    const callerId = (req.user && req.user.id) || req.headers['x-user-id'];
+    const callerId = (req.user && req.user.id) || req.query.caller_id || req.headers['x-user-id'];
 
     // Rule: Only administrators can permanently delete members
     if (callerRole !== 'admin') {
@@ -1671,10 +1671,10 @@ app.get('/api/workspaces', async (req, res) => {
   }
 });
 
-app.get('/api/projects', async (req, res) => {
+app.get('/api/projects', optionalAuth, async (req, res) => {
   try {
-    const userRole = req.headers['x-user-role'] || 'member';
-    const userId = req.headers['x-user-id'] || req.query.user_id;
+    const userRole = (req.user && req.user.role) || req.query.role || req.headers['x-user-role'] || 'member';
+    const userId = (req.user && req.user.id) || req.query.user_id || req.headers['x-user-id'];
     const canViewAll = userRole === 'admin' || userRole === 'manager';
     const includeArchived = req.query.include_archived === 'true';
 
