@@ -86,6 +86,10 @@ async function deployToNetlify() {
   }, JSON.stringify({ files: filesMap }));
 
   const deploy = JSON.parse(initRes.data.toString());
+  if (initRes.status !== 200 && initRes.status !== 201) {
+    throw new Error(`Netlify API Error (${initRes.status}): ${deploy.message || initRes.data.toString()}`);
+  }
+
   if (deploy.required && deploy.required.length > 0) {
     for (const sha of deploy.required) {
       const buf = fileBufferMap[sha];
