@@ -134,9 +134,14 @@ function triggerRender() {
 async function main() {
   try {
     pushToGit();
-    await deployToNetlify();
     triggerRender();
-    log('=== DEPLOYMENT COMPLETE ===');
+    try {
+      await deployToNetlify();
+    } catch (netErr) {
+      log(`⚠️ Netlify Upload Warning: ${netErr.message}`);
+      log('If Netlify auth token expired, generate a new Personal Access Token at app.netlify.com/user/applications');
+    }
+    log('=== DEPLOYMENT TRIGGERED ===');
     log('Frontend: https://bizproject-80307.netlify.app');
     log('Backend:  https://bizproject-api.onrender.com');
   } catch (e) {
