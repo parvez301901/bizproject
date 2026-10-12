@@ -63,7 +63,7 @@ app.use(cors({
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-user-role', 'x-actor-name', 'X-Requested-With']
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-user-role', 'x-user-id', 'x-actor-name', 'X-Requested-With']
 }));
 
 // 3. Body limits (25MB max to prevent memory exhaustion DoS)
