@@ -461,47 +461,49 @@ export default function OnboardingHub({ users = [], onRefresh, onOpenOnboardModa
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6 sm:space-y-8 animate-fadeIn">
-      {/* TOP XP BAR: Prominently visible at the very top of the onboarding screen */}
-      <div className="bg-white border border-emerald-200/90 rounded-2xl p-4 sm:p-5 shadow-sm shadow-emerald-500/5 relative overflow-hidden">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-2.5">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-400 to-amber-500 flex items-center justify-center text-white shadow-xs">
-              <Trophy className="w-5 h-5 fill-white" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-                  Onboarding XP Progression
-                </span>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
-                  Level {memberLevel} Novice
-                </span>
+      {/* TOP XP BAR: Visible only for team members undergoing onboarding, hidden for Admin */}
+      {!isAdmin && (
+        <div className="bg-white border border-emerald-200/90 rounded-2xl p-4 sm:p-5 shadow-sm shadow-emerald-500/5 relative overflow-hidden">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-2.5">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-400 to-amber-500 flex items-center justify-center text-white shadow-xs">
+                <Trophy className="w-5 h-5 fill-white" />
               </div>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Complete onboarding steps to accumulate XP, unlock leaderboard standing, and graduate to full productivity.
-              </p>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                    Onboarding XP Progression
+                  </span>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                    Level {memberLevel} Novice
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Complete onboarding steps to accumulate XP, unlock leaderboard standing, and graduate to full productivity.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-baseline sm:text-right gap-1.5 self-start sm:self-center">
+              <span className="text-2xl font-extrabold text-emerald-700">{memberXp}</span>
+              <span className="text-xs font-semibold text-slate-400">/ 100 XP to Level 1</span>
             </div>
           </div>
 
-          <div className="flex items-baseline sm:text-right gap-1.5 self-start sm:self-center">
-            <span className="text-2xl font-extrabold text-emerald-700">{memberXp}</span>
-            <span className="text-xs font-semibold text-slate-400">/ 100 XP to Level 1</span>
+          {/* The Live EXP Bar Strip */}
+          <div className="w-full bg-slate-100 h-3 rounded-full overflow-hidden border border-slate-200/60 relative">
+            <div 
+              className="h-full bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-400 rounded-full transition-all duration-700 ease-out shadow-xs"
+              style={{ width: `${Math.max(5, xpBarPercent)}%` }}
+            />
+          </div>
+          <div className="flex justify-between items-center text-[10px] font-semibold text-slate-400 mt-1.5 px-0.5">
+            <span>0 XP (Start)</span>
+            <span className="text-emerald-700 font-bold">{xpBarPercent}% Milestone</span>
+            <span>100 XP (Level 1 Promotion)</span>
           </div>
         </div>
-
-        {/* The Live EXP Bar Strip */}
-        <div className="w-full bg-slate-100 h-3 rounded-full overflow-hidden border border-slate-200/60 relative">
-          <div 
-            className="h-full bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-400 rounded-full transition-all duration-700 ease-out shadow-xs"
-            style={{ width: `${Math.max(5, xpBarPercent)}%` }}
-          />
-        </div>
-        <div className="flex justify-between items-center text-[10px] font-semibold text-slate-400 mt-1.5 px-0.5">
-          <span>0 XP (Start)</span>
-          <span className="text-emerald-700 font-bold">{xpBarPercent}% Milestone</span>
-          <span>100 XP (Level 1 Promotion)</span>
-        </div>
-      </div>
+      )}
 
       {/* Floating XP Reward Notification Popup */}
       {xpAwardedPopup && (
@@ -756,32 +758,34 @@ export default function OnboardingHub({ users = [], onRefresh, onOpenOnboardModa
                           </div>
                         </div>
 
-                        {/* Action Buttons: Edit and Delete */}
-                        <div className="flex items-center gap-1 shrink-0 pt-0.5">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              startEditTask(task);
-                            }}
-                            className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors cursor-pointer"
-                            title="Edit task description or details"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
+                        {/* Action Buttons: Edit and Delete (Restricted to Admin & Manager only) */}
+                        {(isAdmin || isManager) && (
+                          <div className="flex items-center gap-1 shrink-0 pt-0.5">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                startEditTask(task);
+                              }}
+                              className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors cursor-pointer"
+                              title="Edit task description or details"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </button>
 
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteTask(task.id);
-                            }}
-                            className="p-1.5 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                            title="Remove task"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteTask(task.id);
+                              }}
+                              className="p-1.5 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                              title="Remove task"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        )}
                       </div>
                     );
                   })

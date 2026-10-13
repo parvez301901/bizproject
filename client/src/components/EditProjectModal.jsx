@@ -19,7 +19,10 @@ import {
   Cpu,
   HardDrive,
   Users,
-  UserCheck
+  UserCheck,
+  Globe,
+  Lock,
+  Key
 } from 'lucide-react';
 import { api } from '../services/api';
 import DeleteProjectModal from './DeleteProjectModal';
@@ -76,6 +79,47 @@ export default function EditProjectModal({ project, onClose, onUpdated, currentU
     } catch(e) {}
     return [];
   });
+
+  // Hosting & Deployment Infrastructure State
+  const initialHosting = (() => {
+    try {
+      if (typeof project.hosting_info === 'object' && project.hosting_info !== null) return project.hosting_info;
+      if (typeof project.hosting_info === 'string') return JSON.parse(project.hosting_info);
+    } catch(e) {}
+    return {};
+  })();
+
+  const [dbHost, setDbHost] = useState(initialHosting.db_host || '');
+  const [dbName, setDbName] = useState(initialHosting.db_name || '');
+  const [dbUser, setDbUser] = useState(initialHosting.db_user || '');
+  const [dbPassword, setDbPassword] = useState(initialHosting.db_password || '');
+  const [dbPort, setDbPort] = useState(initialHosting.db_port || '');
+
+  const [frontendHost, setFrontendHost] = useState(initialHosting.frontend_host || '');
+  const [frontendUrl, setFrontendUrl] = useState(initialHosting.frontend_url || '');
+  const [frontendUser, setFrontendUser] = useState(initialHosting.frontend_user || '');
+  const [frontendPassword, setFrontendPassword] = useState(initialHosting.frontend_password || '');
+
+  const [backendHost, setBackendHost] = useState(initialHosting.backend_host || '');
+  const [backendUrl, setBackendUrl] = useState(initialHosting.backend_url || '');
+  const [backendUser, setBackendUser] = useState(initialHosting.backend_user || '');
+  const [backendPassword, setBackendPassword] = useState(initialHosting.backend_password || '');
+
+  const [hostingNotes, setHostingNotes] = useState(initialHosting.notes || '');
+
+  // Access control for hosting credentials
+  const [hideHostingFromEmployees, setHideHostingFromEmployees] = useState(
+    initialHosting.hide_from_all_employees !== undefined ? initialHosting.hide_from_all_employees : true
+  );
+  const [hostingAccessUserIds, setHostingAccessUserIds] = useState(() => {
+    try {
+      if (Array.isArray(project.hosting_access_user_ids)) return project.hosting_access_user_ids;
+      if (typeof project.hosting_access_user_ids === 'string') return JSON.parse(project.hosting_access_user_ids);
+    } catch(e) {}
+    return [];
+  });
+  const [showPasswords, setShowPasswords] = useState(false);
+
   const [allUsersList, setAllUsersList] = useState([]);
   const [activeTab, setActiveTab] = useState('general'); // 'general', 'documentation', 'infrastructure', 'tech'
   const [loading, setLoading] = useState(false);
@@ -97,6 +141,24 @@ export default function EditProjectModal({ project, onClose, onUpdated, currentU
     setLoading(true);
     setError('');
     try {
+      const hostingPayload = {
+        db_host: dbHost.trim(),
+        db_name: dbName.trim(),
+        db_user: dbUser.trim(),
+        db_password: dbPassword.trim(),
+        db_port: dbPort.trim(),
+        frontend_host: frontendHost.trim(),
+        frontend_url: frontendUrl.trim(),
+        frontend_user: frontendUser.trim(),
+        frontend_password: frontendPassword.trim(),
+        backend_host: backendHost.trim(),
+        backend_url: backendUrl.trim(),
+        backend_user: backendUser.trim(),
+        backend_password: backendPassword.trim(),
+        notes: hostingNotes.trim(),
+        hide_from_all_employees: hideHostingFromEmployees
+      };
+
       await api.updateProject(project.id, {
         name: name.trim(),
         description: description.trim(),
@@ -119,6 +181,8 @@ export default function EditProjectModal({ project, onClose, onUpdated, currentU
         tech_stack: techStack.trim() || null,
         is_restricted: isRestricted ? 1 : 0,
         assigned_user_ids: assignedUserIds,
+        hosting_info: hostingPayload,
+        hosting_access_user_ids: hostingAccessUserIds,
         actor_name: currentUser?.full_name || 'Admin'
       });
       if (onUpdated) onUpdated();
@@ -192,6 +256,21 @@ export default function EditProjectModal({ project, onClose, onUpdated, currentU
             <span>Infrastructure & Access</span>
             {isRestricted && (
               <span className="w-2 h-2 rounded-full bg-rose-500" />
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('hosting')}
+            className={`py-3 px-4 text-xs font-semibold border-b-2 transition-all cursor-pointer flex items-center gap-1.5 ${
+              activeTab === 'hosting'
+                ? 'border-emerald-600 text-emerald-700'
+                : 'border-transparent text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <Lock className="w-3.5 h-3.5 text-amber-600" />
+            <span>Hosting & Credentials</span>
+            {hideHostingFromEmployees && (
+              <span className="text-[9px] bg-amber-100 text-amber-800 font-bold px-1 rounded">Hidden</span>
             )}
           </button>
           <button
@@ -591,6 +670,320 @@ export default function EditProjectModal({ project, onClose, onUpdated, currentU
                     );
                   })}
                 </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'hosting' && (
+            <div className="space-y-5 animate-fadeIn">
+              {/* Security & Access Banner */}
+              <div className="p-4 bg-slate-900 text-white rounded-xl space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Shield className="w-4 h-4 text-amber-400" />
+                    <span className="font-bold text-xs text-amber-300">Confidential Hosting & Environment Credentials</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowPasswords(!showPasswords)}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 transition-colors cursor-pointer"
+                  >
+                    {showPasswords ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5 text-amber-400" />}
+                    <span>{showPasswords ? 'Hide Secrets' : 'Reveal Secrets'}</span>
+                  </button>
+                </div>
+                <p className="text-[11px] text-slate-300 leading-relaxed">
+                  Store database, frontend, and backend host locations, login credentials, and ports. Control employee visibility below.
+                </p>
+              </div>
+
+              {/* Access Control & Permissions */}
+              <div className="p-4 bg-amber-50/70 border border-amber-200/90 rounded-xl space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <label className="flex items-start gap-2.5 cursor-pointer flex-1">
+                    <input
+                      type="checkbox"
+                      checked={hideHostingFromEmployees}
+                      onChange={(e) => setHideHostingFromEmployees(e.target.checked)}
+                      className="w-4 h-4 mt-0.5 text-amber-600 rounded border-amber-300 focus:ring-amber-500"
+                    />
+                    <div>
+                      <span className="text-xs font-bold text-slate-900 block">
+                        Hide hosting information from regular employees
+                      </span>
+                      <p className="text-[11px] text-slate-600 mt-0.5">
+                        When enabled, employees will not see database, frontend, or backend credentials unless explicitly granted access below.
+                      </p>
+                    </div>
+                  </label>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded shrink-0 ${
+                    hideHostingFromEmployees ? 'bg-amber-200 text-amber-900' : 'bg-slate-200 text-slate-700'
+                  }`}>
+                    {hideHostingFromEmployees ? 'Protected' : 'Visible to Assigned'}
+                  </span>
+                </div>
+
+                {/* Specific Employee Access List */}
+                <div className="pt-2 border-t border-amber-200/70 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                      <Users className="w-3.5 h-3.5 text-amber-700" />
+                      <span>Give Specific Employees Hosting Access</span>
+                    </label>
+                    <span className="text-[10px] font-mono font-semibold bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded">
+                      {hostingAccessUserIds.length} Authorized
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-slate-500">
+                    Select trusted team members who are allowed to view hosting locations and passwords. Admins and managers always have full access.
+                  </p>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-36 overflow-y-auto pt-1 pr-1">
+                    {allUsersList.map(u => {
+                      const isAllowed = hostingAccessUserIds.includes(u.id);
+                      return (
+                        <button
+                          type="button"
+                          key={u.id}
+                          onClick={() => {
+                            setHostingAccessUserIds(prev => 
+                              prev.includes(u.id) ? prev.filter(id => id !== u.id) : [...prev, u.id]
+                            );
+                          }}
+                          className={`flex items-center justify-between p-2 rounded-lg text-xs font-medium border transition-all text-left cursor-pointer ${
+                            isAllowed
+                              ? 'bg-white border-amber-500 text-amber-900 shadow-2xs ring-1 ring-amber-400'
+                              : 'bg-white/70 border-slate-200 text-slate-600 hover:bg-white hover:text-slate-900'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <img
+                              src={u.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(u.full_name)}`}
+                              alt={u.full_name}
+                              className="w-5 h-5 rounded-full object-cover shrink-0"
+                            />
+                            <div className="truncate">
+                              <span className="block truncate font-semibold">{u.full_name}</span>
+                              <span className="text-[10px] text-slate-400 block truncate">{u.designation || u.role}</span>
+                            </div>
+                          </div>
+                          {isAllowed && (
+                            <UserCheck className="w-4 h-4 text-amber-600 shrink-0 ml-1.5" />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {/* 1. Database Hosting Details */}
+              <div className="p-4 bg-indigo-50/40 border border-indigo-200/80 rounded-xl space-y-3">
+                <div className="flex items-center gap-2 text-indigo-900 font-bold text-xs">
+                  <Database className="w-4 h-4 text-indigo-600" />
+                  <span>Database Hosting Information</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[11px] font-semibold text-slate-700 block mb-1">
+                      Where is Database Hosted? (Host / Server IP / Provider)
+                    </label>
+                    <input
+                      type="text"
+                      value={dbHost}
+                      onChange={(e) => setDbHost(e.target.value)}
+                      placeholder="e.g. Neon PostgreSQL, AWS RDS, localhost:5432, Supabase"
+                      className="w-full text-xs bg-white border border-slate-200 rounded-lg px-3 py-2 font-mono focus:outline-none focus:border-indigo-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-semibold text-slate-700 block mb-1">
+                      Database Name / Port
+                    </label>
+                    <div className="grid grid-cols-3 gap-2">
+                      <input
+                        type="text"
+                        value={dbName}
+                        onChange={(e) => setDbName(e.target.value)}
+                        placeholder="Database name"
+                        className="col-span-2 text-xs bg-white border border-slate-200 rounded-lg px-3 py-2 font-mono focus:outline-none focus:border-indigo-500"
+                      />
+                      <input
+                        type="text"
+                        value={dbPort}
+                        onChange={(e) => setDbPort(e.target.value)}
+                        placeholder="Port (5432)"
+                        className="col-span-1 text-xs bg-white border border-slate-200 rounded-lg px-2.5 py-2 font-mono focus:outline-none focus:border-indigo-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-semibold text-slate-700 block mb-1">
+                      Database Username
+                    </label>
+                    <input
+                      type="text"
+                      value={dbUser}
+                      onChange={(e) => setDbUser(e.target.value)}
+                      placeholder="e.g. postgres, root, neondb_owner"
+                      className="w-full text-xs bg-white border border-slate-200 rounded-lg px-3 py-2 font-mono focus:outline-none focus:border-indigo-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-semibold text-slate-700 block mb-1">
+                      Database Password
+                    </label>
+                    <input
+                      type={showPasswords ? 'text' : 'password'}
+                      value={dbPassword}
+                      onChange={(e) => setDbPassword(e.target.value)}
+                      placeholder="Password"
+                      className="w-full text-xs bg-white border border-slate-200 rounded-lg px-3 py-2 font-mono focus:outline-none focus:border-indigo-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* 2. Frontend Hosting Details */}
+              <div className="p-4 bg-sky-50/40 border border-sky-200/80 rounded-xl space-y-3">
+                <div className="flex items-center gap-2 text-sky-900 font-bold text-xs">
+                  <Globe className="w-4 h-4 text-sky-600" />
+                  <span>Frontend Hosting Information</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[11px] font-semibold text-slate-700 block mb-1">
+                      Where is Frontend Hosted? (Provider / Platform)
+                    </label>
+                    <input
+                      type="text"
+                      value={frontendHost}
+                      onChange={(e) => setFrontendHost(e.target.value)}
+                      placeholder="e.g. Netlify, Vercel, Firebase Hosting, Apache XAMPP"
+                      className="w-full text-xs bg-white border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:border-sky-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-semibold text-slate-700 block mb-1">
+                      Frontend Live URL / Domain
+                    </label>
+                    <input
+                      type="text"
+                      value={frontendUrl}
+                      onChange={(e) => setFrontendUrl(e.target.value)}
+                      placeholder="https://bizproject-80307.netlify.app or http://localhost:5173"
+                      className="w-full text-xs bg-white border border-slate-200 rounded-lg px-3 py-2 font-mono focus:outline-none focus:border-sky-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-semibold text-slate-700 block mb-1">
+                      Frontend Control Panel / SSH Username
+                    </label>
+                    <input
+                      type="text"
+                      value={frontendUser}
+                      onChange={(e) => setFrontendUser(e.target.value)}
+                      placeholder="e.g. netlify-admin, deployer"
+                      className="w-full text-xs bg-white border border-slate-200 rounded-lg px-3 py-2 font-mono focus:outline-none focus:border-sky-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-semibold text-slate-700 block mb-1">
+                      Frontend Password / Auth Token
+                    </label>
+                    <input
+                      type={showPasswords ? 'text' : 'password'}
+                      value={frontendPassword}
+                      onChange={(e) => setFrontendPassword(e.target.value)}
+                      placeholder="Password or API token"
+                      className="w-full text-xs bg-white border border-slate-200 rounded-lg px-3 py-2 font-mono focus:outline-none focus:border-sky-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* 3. Backend Hosting Details */}
+              <div className="p-4 bg-emerald-50/40 border border-emerald-200/80 rounded-xl space-y-3">
+                <div className="flex items-center gap-2 text-emerald-900 font-bold text-xs">
+                  <Server className="w-4 h-4 text-emerald-600" />
+                  <span>Backend Hosting Information</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[11px] font-semibold text-slate-700 block mb-1">
+                      Where is Backend Hosted? (Provider / Server IP)
+                    </label>
+                    <input
+                      type="text"
+                      value={backendHost}
+                      onChange={(e) => setBackendHost(e.target.value)}
+                      placeholder="e.g. Render, Railway, DigitalOcean Droplet, AWS EC2, VPS"
+                      className="w-full text-xs bg-white border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-semibold text-slate-700 block mb-1">
+                      Backend Live API URL
+                    </label>
+                    <input
+                      type="text"
+                      value={backendUrl}
+                      onChange={(e) => setBackendUrl(e.target.value)}
+                      placeholder="https://bizproject-api.onrender.com or http://localhost:5000"
+                      className="w-full text-xs bg-white border border-slate-200 rounded-lg px-3 py-2 font-mono focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-semibold text-slate-700 block mb-1">
+                      Backend Server / SSH Username
+                    </label>
+                    <input
+                      type="text"
+                      value={backendUser}
+                      onChange={(e) => setBackendUser(e.target.value)}
+                      placeholder="e.g. root, ubuntu, render-service"
+                      className="w-full text-xs bg-white border border-slate-200 rounded-lg px-3 py-2 font-mono focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-semibold text-slate-700 block mb-1">
+                      Backend Password / Secret Key
+                    </label>
+                    <input
+                      type={showPasswords ? 'text' : 'password'}
+                      value={backendPassword}
+                      onChange={(e) => setBackendPassword(e.target.value)}
+                      placeholder="Password or SSH key pass"
+                      className="w-full text-xs bg-white border border-slate-200 rounded-lg px-3 py-2 font-mono focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Extra Hosting Notes / Environment Variables */}
+              <div>
+                <label className="text-xs font-semibold text-slate-700 block mb-1">
+                  Additional Hosting Notes, DNS, or Config Info
+                </label>
+                <textarea
+                  rows={3}
+                  value={hostingNotes}
+                  onChange={(e) => setHostingNotes(e.target.value)}
+                  placeholder="e.g. Cloudflare DNS proxied, SSL auto-renews on Let's Encrypt, DB backups run daily at 02:00..."
+                  className="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg p-2.5 focus:outline-none focus:border-emerald-500 focus:bg-white leading-relaxed font-mono"
+                />
               </div>
             </div>
           )}

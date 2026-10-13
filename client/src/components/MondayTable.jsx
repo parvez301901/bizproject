@@ -14,7 +14,10 @@ import {
   CheckSquare,
   Square,
   MoreHorizontal,
-  ListTree
+  ListTree,
+  Settings2,
+  Server,
+  Shield
 } from 'lucide-react';
 
 const STATUS_CONFIG = {
@@ -40,7 +43,10 @@ export default function MondayTable({
   onDeleteTask,
   onBulkUpdate,
   onOpenTaskModal,
-  onAddTask
+  onAddTask,
+  project,
+  onOpenProjectSettings,
+  currentUser
 }) {
   const [selectedTaskIds, setSelectedTaskIds] = useState([]);
   const [search, setSearch] = useState('');
@@ -120,25 +126,39 @@ export default function MondayTable({
         </div>
 
         {/* Bulk Action Controls */}
-        {selectedTaskIds.length > 0 && (
-          <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-lg animate-fadeIn">
-            <span className="text-xs font-semibold text-emerald-800">
-              {selectedTaskIds.length} Selected
-            </span>
+        <div className="flex items-center gap-2">
+          {selectedTaskIds.length > 0 && (
+            <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-lg animate-fadeIn">
+              <span className="text-xs font-semibold text-emerald-800">
+                {selectedTaskIds.length} Selected
+              </span>
+              <button
+                onClick={() => onBulkUpdate(selectedTaskIds, 'set_status', 'Done')}
+                className="text-xs bg-white text-emerald-700 hover:bg-emerald-600 hover:text-white px-2.5 py-1 rounded border border-emerald-300 font-medium transition-colors cursor-pointer"
+              >
+                Mark Done
+              </button>
+              <button
+                onClick={() => onBulkUpdate(selectedTaskIds, 'delete')}
+                className="text-xs bg-white text-rose-600 hover:bg-rose-600 hover:text-white px-2.5 py-1 rounded border border-rose-200 font-medium transition-colors cursor-pointer"
+              >
+                Delete
+              </button>
+            </div>
+          )}
+
+          {/* Project Settings & Hosting Configuration Shortcut */}
+          {onOpenProjectSettings && (
             <button
-              onClick={() => onBulkUpdate(selectedTaskIds, 'set_status', 'Done')}
-              className="text-xs bg-white text-emerald-700 hover:bg-emerald-600 hover:text-white px-2.5 py-1 rounded border border-emerald-300 font-medium transition-colors"
+              onClick={onOpenProjectSettings}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-50 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 font-semibold text-xs border border-slate-200/90 hover:border-emerald-300 transition-all cursor-pointer shadow-2xs"
+              title="Configure project details, hosting info (Database, Frontend, Backend), and employee access"
             >
-              Mark Done
+              <Settings2 className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Project Settings & Hosting</span>
             </button>
-            <button
-              onClick={() => onBulkUpdate(selectedTaskIds, 'delete')}
-              className="text-xs bg-white text-rose-600 hover:bg-rose-600 hover:text-white px-2.5 py-1 rounded border border-rose-200 font-medium transition-colors"
-            >
-              Delete
-            </button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Spreadsheet / Monday.com Grid */}

@@ -10,7 +10,9 @@ import {
   Sparkles,
   Check,
   Save,
-  Loader2
+  Loader2,
+  Database,
+  Download
 } from 'lucide-react';
 import { api } from '../services/api';
 
@@ -36,6 +38,8 @@ export default function AdminSettingsModal({
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [downloadingBackup, setDownloadingBackup] = useState(false);
+  const [backupSuccess, setBackupSuccess] = useState(false);
   const [selectedTz, setSelectedTz] = useState('6');
   const [serverTimeInfo, setServerTimeInfo] = useState(null);
 
@@ -259,6 +263,73 @@ export default function AdminSettingsModal({
                   </>
                 )}
               </span>
+            </div>
+          </div>
+
+          {/* Database Backup & Snapshot Download */}
+          <div className="space-y-1 pt-1">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+              Database Maintenance & Backups
+            </span>
+            <p className="text-xs text-slate-500 leading-relaxed">
+              Export and download a complete JSON snapshot of all database tables (users, tasks, projects, logs, settings).
+            </p>
+          </div>
+
+          <div className="p-4 rounded-xl border border-emerald-200/90 bg-emerald-50/40 space-y-3">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-lg bg-emerald-600/10 text-emerald-700 flex items-center justify-center shrink-0 mt-0.5">
+                  <Database className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-xs font-bold text-slate-900 flex items-center gap-2">
+                    <span>Export Full Database Backup</span>
+                    <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-100 px-1.5 py-0.2 rounded">
+                      Live Snapshot
+                    </span>
+                  </h3>
+                  <p className="text-[11px] text-slate-500 leading-relaxed mt-0.5">
+                    Download an offline JSON dump of all tables, relations, and settings.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                disabled={downloadingBackup}
+                onClick={async () => {
+                  try {
+                    setDownloadingBackup(true);
+                    setBackupSuccess(false);
+                    const res = await api.downloadDatabaseBackup();
+                    setBackupSuccess(true);
+                    setTimeout(() => setBackupSuccess(false), 3000);
+                  } catch (err) {
+                    alert('Backup download failed: ' + err.message);
+                  } finally {
+                    setDownloadingBackup(false);
+                  }
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-semibold text-xs rounded-xl shadow-xs transition-colors shrink-0 cursor-pointer"
+              >
+                {downloadingBackup ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Exporting...</span>
+                  </>
+                ) : backupSuccess ? (
+                  <>
+                    <Check className="w-3.5 h-3.5" />
+                    <span>Downloaded!</span>
+                  </>
+                ) : (
+                  <>
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Download Backup</span>
+                  </>
+                )}
+              </button>
             </div>
           </div>
 

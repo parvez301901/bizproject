@@ -369,7 +369,7 @@ export default function HelpGuideModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-200">
       <div
-        className="bg-white w-full max-w-4xl h-[90vh] max-h-[820px] rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-200/90 flex flex-col overflow-hidden text-slate-800"
+        className="bg-white w-full max-w-4xl h-[90vh] max-h-[820px] rounded-xl shadow-2xl border border-slate-200/90 flex flex-col overflow-hidden text-slate-800"
         role="dialog"
         aria-modal="true"
         aria-labelledby="help-modal-title"
@@ -377,7 +377,7 @@ export default function HelpGuideModal({
         {/* Header */}
         <div className="px-5 sm:px-6 py-4 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white flex items-center justify-between shrink-0 border-b border-slate-700/60">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-white shadow-md shadow-emerald-500/20">
+            <div className="w-10 h-10 rounded-lg bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-white shadow-md shadow-emerald-500/20">
               <Compass className="w-5 h-5" />
             </div>
             <div>
@@ -630,17 +630,17 @@ export default function HelpGuideModal({
 
             {/* Bottom Take Me There Action Bar */}
             {activeGuide && (
-              <div className="pt-6 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 mt-6">
-                <div className="text-[11px] text-slate-500 text-center sm:text-left">
+              <div className="pt-6 border-t border-slate-100 flex flex-col items-center justify-between gap-3 mt-6">
+                <div className="text-[11px] text-slate-500 text-center">
                   Need to go directly? Click below to navigate immediately:
                 </div>
 
-                <div className="flex items-center gap-2 w-full sm:w-auto">
+                <div className="flex flex-col sm:flex-row items-center gap-2 w-full justify-center">
                   <a
                     href={`/guide.html?search=${encodeURIComponent(searchQuery || activeGuide.title)}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="px-3.5 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+                    className="w-full sm:w-auto px-3.5 py-2.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
                     title="Open in full documentation page"
                   >
                     <BookOpen className="w-3.5 h-3.5 text-emerald-600" />
@@ -650,7 +650,7 @@ export default function HelpGuideModal({
                   <button
                     type="button"
                     onClick={() => handleExecuteAction(activeGuide)}
-                    className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center justify-center gap-2 shadow-sm shadow-emerald-600/20 transition-all cursor-pointer"
+                    className="w-full sm:w-auto px-5 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center justify-center gap-2 shadow-sm shadow-emerald-600/20 transition-all cursor-pointer"
                   >
                     <span>{activeGuide.actionLabel}</span>
                     <ArrowRight className="w-3.5 h-3.5" />

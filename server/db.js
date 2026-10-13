@@ -196,6 +196,8 @@ function setupSQLiteSchema() {
   try { sqliteDb.exec("ALTER TABLE projects ADD COLUMN backend_tech TEXT"); } catch(e) {}
   try { sqliteDb.exec("ALTER TABLE projects ADD COLUMN database_tech TEXT"); } catch(e) {}
   try { sqliteDb.exec("ALTER TABLE projects ADD COLUMN assigned_user_ids TEXT"); } catch(e) {}
+  try { sqliteDb.exec("ALTER TABLE projects ADD COLUMN hosting_info TEXT"); } catch(e) {}
+  try { sqliteDb.exec("ALTER TABLE projects ADD COLUMN hosting_access_user_ids TEXT"); } catch(e) {}
   try { sqliteDb.exec("ALTER TABLE onboarding_tasks ADD COLUMN xp_reward INTEGER DEFAULT 35"); } catch(e) {}
   try { sqliteDb.exec("ALTER TABLE onboarding_tasks ADD COLUMN xp_claimed INTEGER DEFAULT 0"); } catch(e) {}
   try { sqliteDb.exec("ALTER TABLE onboarding_tasks ADD COLUMN approval_status TEXT DEFAULT 'pending'"); } catch(e) {}
@@ -504,6 +506,8 @@ async function setupPostgresSchema() {
       "ALTER TABLE projects ADD COLUMN IF NOT EXISTS backend_tech TEXT",
       "ALTER TABLE projects ADD COLUMN IF NOT EXISTS database_tech TEXT",
       "ALTER TABLE projects ADD COLUMN IF NOT EXISTS assigned_user_ids TEXT",
+      "ALTER TABLE projects ADD COLUMN IF NOT EXISTS hosting_info TEXT",
+      "ALTER TABLE projects ADD COLUMN IF NOT EXISTS hosting_access_user_ids TEXT",
       "ALTER TABLE onboarding_tasks ADD COLUMN IF NOT EXISTS xp_reward INTEGER DEFAULT 35",
       "ALTER TABLE onboarding_tasks ADD COLUMN IF NOT EXISTS xp_claimed INTEGER DEFAULT 0",
       "ALTER TABLE onboarding_tasks ADD COLUMN IF NOT EXISTS approval_status VARCHAR(32) DEFAULT 'pending'",

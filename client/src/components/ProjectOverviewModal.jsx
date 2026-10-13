@@ -22,7 +22,11 @@ import {
   CheckCircle,
   Database,
   Code2,
-  Cpu
+  Cpu,
+  Globe,
+  Lock,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { marked } from 'marked';
 import { api } from '../services/api';
@@ -72,6 +76,17 @@ export default function ProjectOverviewModal({ project, onClose, onEdit, current
   const pdfUrl = api.getProjectPdfUrl(p.id, selectedPdfFile);
   const renderedHtml = currentMarkdown ? marked.parse(currentMarkdown) : null;
   const canViewInfrastructure = !currentUser || currentUser.role === 'admin' || currentUser.role === 'manager';
+  const [showHostingSecrets, setShowHostingSecrets] = useState(false);
+
+  const parsedHosting = (() => {
+    try {
+      if (typeof p.hosting_info === 'object' && p.hosting_info !== null) return p.hosting_info;
+      if (typeof p.hosting_info === 'string') return JSON.parse(p.hosting_info);
+    } catch(e) {}
+    return null;
+  })();
+
+  const canViewHosting = canViewInfrastructure || p.can_view_hosting || Boolean(parsedHosting);
 
   // Handler to load a specific markdown file
   const handleSelectMarkdownFile = async (docName) => {
@@ -539,6 +554,131 @@ export default function ProjectOverviewModal({ project, onClose, onEdit, current
                           )}
                         </div>
                       </div>
+                    </div>
+                  )}
+
+                  {/* Hosting & Server Credentials (Database, Frontend, Backend) */}
+                  {canViewHosting && parsedHosting && (
+                    <div className="col-span-1 sm:col-span-2 p-4 bg-slate-900 text-white rounded-xl space-y-3.5 shadow-sm">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Lock className="w-4 h-4 text-amber-400" />
+                          <span className="text-xs font-bold text-amber-300">
+                            Hosting Locations & Access Credentials
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setShowHostingSecrets(!showHostingSecrets)}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 transition-colors cursor-pointer"
+                        >
+                          {showHostingSecrets ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5 text-amber-400" />}
+                          <span>{showHostingSecrets ? 'Hide Passwords' : 'Show Passwords'}</span>
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                        {/* Database Card */}
+                        <div className="bg-slate-800/90 p-3 rounded-lg border border-slate-700/80 space-y-1.5">
+                          <div className="flex items-center gap-1.5 text-indigo-300 font-semibold text-[11px]">
+                            <Database className="w-3.5 h-3.5" />
+                            <span>Database Host</span>
+                          </div>
+                          <div className="font-mono text-[11px] text-slate-200 break-all">
+                            {parsedHosting.db_host || 'Not configured'}
+                          </div>
+                          {parsedHosting.db_name && (
+                            <div className="text-[10px] text-slate-400">
+                              DB: <span className="text-slate-200 font-mono">{parsedHosting.db_name}</span>
+                              {parsedHosting.db_port ? ` : ${parsedHosting.db_port}` : ''}
+                            </div>
+                          )}
+                          {parsedHosting.db_user && (
+                            <div className="text-[10px] text-slate-400">
+                              User: <span className="text-slate-200 font-mono">{parsedHosting.db_user}</span>
+                            </div>
+                          )}
+                          {parsedHosting.db_password && (
+                            <div className="text-[10px] text-slate-400">
+                              Pass: <span className="text-amber-300 font-mono">
+                                {showHostingSecrets ? parsedHosting.db_password : '••••••••'}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Frontend Card */}
+                        <div className="bg-slate-800/90 p-3 rounded-lg border border-slate-700/80 space-y-1.5">
+                          <div className="flex items-center gap-1.5 text-sky-300 font-semibold text-[11px]">
+                            <Globe className="w-3.5 h-3.5" />
+                            <span>Frontend Host</span>
+                          </div>
+                          <div className="font-mono text-[11px] text-slate-200 break-all">
+                            {parsedHosting.frontend_host || 'Not configured'}
+                          </div>
+                          {parsedHosting.frontend_url && (
+                            <a
+                              href={parsedHosting.frontend_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-[10px] text-sky-400 hover:underline block truncate"
+                            >
+                              {parsedHosting.frontend_url}
+                            </a>
+                          )}
+                          {parsedHosting.frontend_user && (
+                            <div className="text-[10px] text-slate-400">
+                              User: <span className="text-slate-200 font-mono">{parsedHosting.frontend_user}</span>
+                            </div>
+                          )}
+                          {parsedHosting.frontend_password && (
+                            <div className="text-[10px] text-slate-400">
+                              Pass: <span className="text-amber-300 font-mono">
+                                {showHostingSecrets ? parsedHosting.frontend_password : '••••••••'}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Backend Card */}
+                        <div className="bg-slate-800/90 p-3 rounded-lg border border-slate-700/80 space-y-1.5">
+                          <div className="flex items-center gap-1.5 text-emerald-300 font-semibold text-[11px]">
+                            <Server className="w-3.5 h-3.5" />
+                            <span>Backend Host</span>
+                          </div>
+                          <div className="font-mono text-[11px] text-slate-200 break-all">
+                            {parsedHosting.backend_host || 'Not configured'}
+                          </div>
+                          {parsedHosting.backend_url && (
+                            <a
+                              href={parsedHosting.backend_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-[10px] text-emerald-400 hover:underline block truncate"
+                            >
+                              {parsedHosting.backend_url}
+                            </a>
+                          )}
+                          {parsedHosting.backend_user && (
+                            <div className="text-[10px] text-slate-400">
+                              User: <span className="text-slate-200 font-mono">{parsedHosting.backend_user}</span>
+                            </div>
+                          )}
+                          {parsedHosting.backend_password && (
+                            <div className="text-[10px] text-slate-400">
+                              Pass: <span className="text-amber-300 font-mono">
+                                {showHostingSecrets ? parsedHosting.backend_password : '••••••••'}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {parsedHosting.notes && (
+                        <div className="pt-1 text-[11px] text-slate-300 bg-slate-800/50 p-2 rounded border border-slate-700">
+                          <span className="font-bold text-amber-300">Notes:</span> {parsedHosting.notes}
+                        </div>
+                      )}
                     </div>
                   )}
 

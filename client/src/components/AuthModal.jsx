@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   X, 
   Mail, 
@@ -12,12 +12,14 @@ import {
   Eye,
   EyeOff,
   KeyRound,
-  ArrowLeft
+  ArrowLeft,
+  RefreshCw,
+  HelpCircle
 } from 'lucide-react';
 import { api } from '../services/api';
 import brandLogo from '../assets/logo.png';
 
-// SVG Icons for the 5 requested Social Auth providers
+// SVG Icons for the 5 requested Social Auth providers (retained for future use)
 function GoogleIcon() {
   return (
     <svg className="w-4 h-4" viewBox="0 0 24 24">
@@ -75,11 +77,41 @@ export default function AuthModal({ onClose, onAuthSuccess, isRequired = false, 
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
+  // Math Captcha state
+  const [captchaProblem, setCaptchaProblem] = useState({ num1: 3, num2: 4, answer: 7 });
+  const [captchaInput, setCaptchaInput] = useState('');
+  // Check if browser has previously logged in successfully
+  const [hasLoggedInBefore, setHasLoggedInBefore] = useState(() => {
+    return localStorage.getItem('biz_has_logged_in') === 'true';
+  });
+
+  const generateCaptcha = () => {
+    const n1 = Math.floor(Math.random() * 8) + 2;
+    const n2 = Math.floor(Math.random() * 8) + 1;
+    setCaptchaProblem({ num1: n1, num2: n2, answer: n1 + n2 });
+    setCaptchaInput('');
+  };
+
+  useEffect(() => {
+    generateCaptcha();
+  }, [mode]);
+
+  const requiresCaptcha = mode === 'register' || (mode === 'login' && !hasLoggedInBefore);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setSuccessMsg('');
     
+    // Validate Captcha when required
+    if (requiresCaptcha) {
+      if (!captchaInput.trim() || parseInt(captchaInput.trim(), 10) !== captchaProblem.answer) {
+        setError('Incorrect security captcha answer. Please solve the math problem.');
+        generateCaptcha();
+        return;
+      }
+    }
+
     if (mode === 'register' && password.length < 6) {
       setError('Password must be at least 6 characters long');
       return;
@@ -101,6 +133,8 @@ export default function AuthModal({ onClose, onAuthSuccess, isRequired = false, 
     try {
       if (mode === 'login') {
         const res = await api.login({ email, password });
+        localStorage.setItem('biz_has_logged_in', 'true');
+        setHasLoggedInBefore(true);
         onAuthSuccess(res.user, res.token);
         if (onClose) onClose();
       } else if (mode === 'register') {
@@ -111,6 +145,8 @@ export default function AuthModal({ onClose, onAuthSuccess, isRequired = false, 
           department,
           designation
         });
+        localStorage.setItem('biz_has_logged_in', 'true');
+        setHasLoggedInBefore(true);
         onAuthSuccess(res.user, res.token);
         if (onClose) onClose();
       } else if (mode === 'forgot') {
@@ -126,6 +162,7 @@ export default function AuthModal({ onClose, onAuthSuccess, isRequired = false, 
       }
     } catch (err) {
       setError(err.message || 'Authentication failed');
+      if (requiresCaptcha) generateCaptcha();
     } finally {
       setLoading(false);
     }
@@ -147,6 +184,8 @@ export default function AuthModal({ onClose, onAuthSuccess, isRequired = false, 
       };
 
       const res = await api.socialAuth(socialPayload);
+      localStorage.setItem('biz_has_logged_in', 'true');
+      setHasLoggedInBefore(true);
       onAuthSuccess(res.user, res.token);
       if (onClose) onClose();
     } catch (err) {
@@ -203,7 +242,7 @@ export default function AuthModal({ onClose, onAuthSuccess, isRequired = false, 
               <button
                 type="button"
                 onClick={() => { setMode('login'); setError(''); setSuccessMsg(''); }}
-                className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+                className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
                   mode === 'login' ? 'bg-white text-emerald-800 shadow-xs' : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
@@ -212,7 +251,7 @@ export default function AuthModal({ onClose, onAuthSuccess, isRequired = false, 
               <button
                 type="button"
                 onClick={() => { setMode('register'); setError(''); setSuccessMsg(''); }}
-                className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+                className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
                   mode === 'register' ? 'bg-white text-emerald-800 shadow-xs' : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
@@ -245,70 +284,6 @@ export default function AuthModal({ onClose, onAuthSuccess, isRequired = false, 
               <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
               <span>{successMsg}</span>
             </div>
-          )}
-
-          {/* Social Auth Buttons (shown on Login & Register) */}
-          {mode !== 'forgot' && (
-            <>
-              <div>
-                <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2 text-center">
-                  1-Click Instant Social {mode === 'login' ? 'Sign In' : 'Registration'}
-                </div>
-                <div className="grid grid-cols-5 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => handleSocialAuth('google', 'Google')}
-                    title="Continue with Google"
-                    className="flex items-center justify-center p-2.5 bg-slate-50 hover:bg-emerald-50/50 border border-slate-200 hover:border-emerald-300 rounded-xl transition-all cursor-pointer group shadow-xs hover:scale-105"
-                  >
-                    <GoogleIcon />
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleSocialAuth('facebook', 'Facebook')}
-                    title="Continue with Facebook"
-                    className="flex items-center justify-center p-2.5 bg-slate-50 hover:bg-emerald-50/50 border border-slate-200 hover:border-emerald-300 rounded-xl transition-all cursor-pointer group shadow-xs hover:scale-105"
-                  >
-                    <FacebookIcon />
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleSocialAuth('twitter', 'Twitter (X)')}
-                    title="Continue with Twitter / X"
-                    className="flex items-center justify-center p-2.5 bg-slate-50 hover:bg-emerald-50/50 border border-slate-200 hover:border-emerald-300 rounded-xl transition-all cursor-pointer group shadow-xs hover:scale-105"
-                  >
-                    <TwitterIcon />
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleSocialAuth('github', 'GitHub')}
-                    title="Continue with GitHub"
-                    className="flex items-center justify-center p-2.5 bg-slate-50 hover:bg-emerald-50/50 border border-slate-200 hover:border-emerald-300 rounded-xl transition-all cursor-pointer group shadow-xs hover:scale-105"
-                  >
-                    <GithubIcon />
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleSocialAuth('linkedin', 'LinkedIn')}
-                    title="Continue with LinkedIn"
-                    className="flex items-center justify-center p-2.5 bg-slate-50 hover:bg-emerald-50/50 border border-slate-200 hover:border-emerald-300 rounded-xl transition-all cursor-pointer group shadow-xs hover:scale-105"
-                  >
-                    <LinkedInIcon />
-                  </button>
-                </div>
-              </div>
-
-              <div className="relative flex items-center justify-center">
-                <div className="border-t border-slate-200 w-full" />
-                <span className="bg-white px-3 text-[11px] text-slate-400 font-medium uppercase tracking-wider shrink-0">
-                  Or with email
-                </span>
-              </div>
-            </>
           )}
 
           {/* Form */}
@@ -450,6 +425,45 @@ export default function AuthModal({ onClose, onAuthSuccess, isRequired = false, 
                     className="w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500"
                   />
                 </div>
+              </div>
+            )}
+
+            {/* Security Math Captcha for Registration or First-Time Login */}
+            {requiresCaptcha && mode !== 'forgot' && (
+              <div className="p-3 bg-slate-50 border border-slate-200/90 rounded-xl space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-[11px] font-semibold text-slate-700 flex items-center gap-1.5">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Security Verification: Solve Math Problem</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={generateCaptcha}
+                    className="text-[10px] text-slate-500 hover:text-emerald-700 flex items-center gap-1 cursor-pointer transition-colors"
+                    title="Generate new question"
+                  >
+                    <RefreshCw className="w-3 h-3" />
+                    <span>Refresh</span>
+                  </button>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg font-mono font-bold text-slate-800 text-xs tracking-wider select-none shrink-0 shadow-2xs">
+                    {captchaProblem.num1} + {captchaProblem.num2} = ?
+                  </div>
+                  <input
+                    type="number"
+                    required
+                    value={captchaInput}
+                    onChange={(e) => setCaptchaInput(e.target.value)}
+                    placeholder="Enter sum"
+                    className="flex-1 px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-500 font-medium"
+                  />
+                </div>
+                <p className="text-[10px] text-slate-400">
+                  {mode === 'register' 
+                    ? 'Captcha is required for creating a new account.' 
+                    : 'Required once on this device for security.'}
+                </p>
               </div>
             )}
 

@@ -1086,6 +1086,76 @@ app.put('/api/admin/settings', optionalAuth, async (req, res) => {
   }
 });
 
+// Database Backup Download Endpoint (Admin & Manager only)
+app.get('/api/admin/database/backup', optionalAuth, async (req, res) => {
+  try {
+    const callerRole = (req.user && req.user.role) || req.query.role || req.headers['x-user-role'];
+    if (callerRole !== 'admin' && callerRole !== 'manager') {
+      return res.status(403).json({ error: 'Permission denied: Only administrators or managers can export database backups.' });
+    }
+
+    const currentDbType = getDbType();
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const filename = `bizproject_backup_${currentDbType || 'db'}_${timestamp}.json`;
+
+    // Query all core tables safely
+    const tables = [
+      'users',
+      'workspaces',
+      'projects',
+      'boards',
+      'tasks',
+      'task_comments',
+      'activity_logs',
+      'work_logs',
+      'messages',
+      'onboarding_tasks',
+      'common_onboarding_tasks',
+      'instruction_videos',
+      'earnings_rewards',
+      'system_settings'
+    ];
+
+    const backupDump = {
+      meta: {
+        timestamp: new Date().toISOString(),
+        database_type: currentDbType,
+        version: '2.0.0',
+        exported_by: (req.user && req.user.full_name) || req.query.exported_by || 'Admin'
+      },
+      tables: {}
+    };
+
+    for (const tbl of tables) {
+      try {
+        const rows = await query(`SELECT * FROM ${tbl}`);
+        backupDump.tables[tbl] = rows || [];
+      } catch (err) {
+        // Table might not exist or be empty in this environment
+        backupDump.tables[tbl] = [];
+      }
+    }
+
+    await logActivity({
+      entity_type: 'system',
+      entity_id: 'database',
+      user_name: (req.user && req.user.full_name) || req.query.exported_by || 'Admin',
+      action: 'DATABASE_BACKUP_DOWNLOADED',
+      details: `Full JSON database backup downloaded with ${Object.keys(backupDump.tables).length} tables.`
+    });
+
+    const jsonString = JSON.stringify(backupDump, null, 2);
+
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Length', Buffer.byteLength(jsonString));
+    return res.status(200).send(jsonString);
+  } catch (err) {
+    console.error('[DB Backup] Error exporting database:', err);
+    res.status(500).json({ error: 'Failed to generate database backup: ' + err.message });
+  }
+});
+
 // Get user onboarding tasks
 app.get('/api/users/:id/onboarding', async (req, res) => {
   try {
@@ -1766,6 +1836,19 @@ app.get('/api/projects', optionalAuth, async (req, res) => {
         allTags: Array.from(new Set([...finalFrontend, ...finalBackend, ...finalDatabase, ...finalTechStack]))
       };
 
+      // Hosting access check: admin/manager, or user explicitly listed in hosting_access_user_ids
+      let canViewHosting = canViewAll;
+      if (!canViewHosting && userId && proj.hosting_access_user_ids) {
+        try {
+          const allowedIds = JSON.parse(proj.hosting_access_user_ids);
+          if (Array.isArray(allowedIds) && allowedIds.includes(userId)) {
+            canViewHosting = true;
+          }
+        } catch (e) {
+          if (String(proj.hosting_access_user_ids).includes(userId)) canViewHosting = true;
+        }
+      }
+
       // If user is regular employee/member, hide sensitive infrastructure data (github, server, local paths) unless authorized
       if (!canViewAll) {
         return {
@@ -1773,6 +1856,8 @@ app.get('/api/projects', optionalAuth, async (req, res) => {
           location_path: null,
           github_repo: null,
           server_name: null,
+          hosting_info: canViewHosting ? proj.hosting_info : null,
+          can_view_hosting: canViewHosting,
           tech: techInfo,
           issues: issues || []
         };
@@ -1780,6 +1865,7 @@ app.get('/api/projects', optionalAuth, async (req, res) => {
 
       return {
         ...proj,
+        can_view_hosting: true,
         tech: techInfo,
         issues: issues || []
       };
@@ -1816,21 +1902,26 @@ app.post('/api/projects', async (req, res) => {
       frontend_tech = '',
       backend_tech = '',
       database_tech = '',
+      hosting_info = null,
+      hosting_access_user_ids = null,
       actor_name = 'Admin' 
     } = req.body;
     const projId = 'proj_' + uuidv4().substring(0, 8);
     const ws = workspace_id || 'ws_primary';
 
     const cleanAssigned = Array.isArray(assigned_user_ids) ? JSON.stringify(assigned_user_ids) : (assigned_user_ids || '[]');
+    const cleanHostingInfo = typeof hosting_info === 'object' && hosting_info !== null ? JSON.stringify(hosting_info) : (hosting_info || null);
+    const cleanHostingAccess = Array.isArray(hosting_access_user_ids) ? JSON.stringify(hosting_access_user_ids) : (hosting_access_user_ids || '[]');
 
     await query(`
       INSERT INTO projects (
         id, workspace_id, name, description, color, status, priority, 
         start_date, due_date, project_folder, doc_markdown, doc_pdf_path, 
         progress_percent, lifecycle_stage, location_path, github_repo, 
-        server_name, is_restricted, assigned_user_ids, tech_stack, frontend_tech, backend_tech, database_tech, created_by
+        server_name, is_restricted, assigned_user_ids, tech_stack, frontend_tech, backend_tech, database_tech,
+        hosting_info, hosting_access_user_ids, created_by
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'usr_admin')
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'usr_admin')
     `, [
       projId, ws, name, description, color, status, priority, 
       start_date || null, due_date || null, 
@@ -1839,7 +1930,8 @@ app.post('/api/projects', async (req, res) => {
       location_path || null, github_repo || null, server_name || null,
       is_restricted ? 1 : 0,
       cleanAssigned,
-      tech_stack || null, frontend_tech || null, backend_tech || null, database_tech || null
+      tech_stack || null, frontend_tech || null, backend_tech || null, database_tech || null,
+      cleanHostingInfo, cleanHostingAccess
     ]);
 
     // Create default board for the project
@@ -1887,6 +1979,8 @@ app.put('/api/projects/:id', async (req, res) => {
       frontend_tech,
       backend_tech,
       database_tech,
+      hosting_info,
+      hosting_access_user_ids,
       actor_name = 'Admin'
     } = req.body;
 
@@ -1895,6 +1989,14 @@ app.put('/api/projects/:id', async (req, res) => {
 
     const cleanAssigned = assigned_user_ids !== undefined 
       ? (Array.isArray(assigned_user_ids) ? JSON.stringify(assigned_user_ids) : assigned_user_ids)
+      : null;
+
+    const cleanHostingInfo = hosting_info !== undefined
+      ? (typeof hosting_info === 'object' && hosting_info !== null ? JSON.stringify(hosting_info) : hosting_info)
+      : null;
+
+    const cleanHostingAccess = hosting_access_user_ids !== undefined
+      ? (Array.isArray(hosting_access_user_ids) ? JSON.stringify(hosting_access_user_ids) : hosting_access_user_ids)
       : null;
 
     await query(`
@@ -1919,7 +2021,9 @@ app.put('/api/projects/:id', async (req, res) => {
           tech_stack = COALESCE(?, tech_stack),
           frontend_tech = COALESCE(?, frontend_tech),
           backend_tech = COALESCE(?, backend_tech),
-          database_tech = COALESCE(?, database_tech)
+          database_tech = COALESCE(?, database_tech),
+          hosting_info = COALESCE(?, hosting_info),
+          hosting_access_user_ids = COALESCE(?, hosting_access_user_ids)
       WHERE id = ?
     `, [
       name, description, color, status, priority,
@@ -1930,6 +2034,8 @@ app.put('/api/projects/:id', async (req, res) => {
       is_restricted !== undefined ? (is_restricted ? 1 : 0) : null,
       cleanAssigned,
       tech_stack, frontend_tech, backend_tech, database_tech,
+      cleanHostingInfo,
+      cleanHostingAccess,
       req.params.id
     ]);
 
@@ -1991,6 +2097,18 @@ app.delete('/api/projects/:id', optionalAuth, async (req, res) => {
 
       // 7. Delete project itself
       await query('DELETE FROM projects WHERE id = ?', [id]);
+
+      // 8. Record in permanently purged tombstone registry so sync never restores it
+      try {
+        const purgedRaw = await getSystemSetting('purged_project_ids', '[]');
+        const purgedList = JSON.parse(purgedRaw || '[]');
+        if (!purgedList.includes(id)) {
+          purgedList.push(id);
+          await setSystemSetting('purged_project_ids', JSON.stringify(purgedList));
+        }
+      } catch (tombErr) {
+        console.warn('[HardDelete] Notice recording purged tombstone:', tombErr.message);
+      }
 
       await logActivity({
         entity_type: 'project',
@@ -2054,7 +2172,7 @@ app.put('/api/projects/:id/restore', async (req, res) => {
 });
 
 // Get single project details including resolved Overview documentation
-app.get('/api/projects/:id', async (req, res) => {
+app.get('/api/projects/:id', optionalAuth, async (req, res) => {
   try {
     const project = await getOne('SELECT * FROM projects WHERE id = ?', [req.params.id]);
     if (!project) return res.status(404).json({ error: 'Project not found' });
@@ -2216,8 +2334,29 @@ ${issuesText}
       allTags: Array.from(new Set([...finalFrontend, ...finalBackend, ...finalDatabase, ...finalTechStack]))
     };
 
+    const callerRole = (req.user && req.user.role) || req.query.role || req.headers['x-user-role'] || 'member';
+    const userId = (req.user && req.user.id) || req.query.user_id || req.headers['x-user-id'];
+    const canViewAll = callerRole === 'admin' || callerRole === 'manager';
+
+    let canViewHosting = canViewAll;
+    if (!canViewHosting && userId && project.hosting_access_user_ids) {
+      try {
+        const allowedIds = JSON.parse(project.hosting_access_user_ids);
+        if (Array.isArray(allowedIds) && allowedIds.includes(userId)) {
+          canViewHosting = true;
+        }
+      } catch (e) {
+        if (String(project.hosting_access_user_ids).includes(userId)) canViewHosting = true;
+      }
+    }
+
     res.json({
       ...project,
+      location_path: canViewAll ? project.location_path : null,
+      github_repo: canViewAll ? project.github_repo : null,
+      server_name: canViewAll ? project.server_name : null,
+      hosting_info: canViewHosting ? project.hosting_info : null,
+      can_view_hosting: canViewHosting,
       tech: techInfo,
       resolvedMarkdown,
       resolvedPdf,
@@ -2321,16 +2460,29 @@ app.get('/api/projects/:id/pdf', async (req, res) => {
 // 1. Export all projects & boards & tasks bundle for replication
 app.get('/api/projects/sync/export-bundle', async (req, res) => {
   try {
-    const projects = await query('SELECT * FROM projects');
-    const boards = await query('SELECT * FROM boards');
-    const tasks = await query('SELECT * FROM tasks');
+    const purgedRaw = await getSystemSetting('purged_project_ids', '[]');
+    const purgedList = JSON.parse(purgedRaw || '[]');
+    const purgedSet = new Set(purgedList);
+
+    const allProjects = await query('SELECT * FROM projects');
+    const projects = allProjects.filter(p => !purgedSet.has(p.id));
+    const activeProjectIds = new Set(projects.map(p => p.id));
+
+    const allBoards = await query('SELECT * FROM boards');
+    const boards = allBoards.filter(b => activeProjectIds.has(b.project_id));
+    const activeBoardIds = new Set(boards.map(b => b.id));
+
+    const allTasks = await query('SELECT * FROM tasks');
+    const tasks = allTasks.filter(t => activeBoardIds.has(t.board_id));
+
     res.json({
       timestamp: new Date().toISOString(),
       sourceDb: getDbType(),
       counts: { projects: projects.length, boards: boards.length, tasks: tasks.length },
       projects,
       boards,
-      tasks
+      tasks,
+      purged_project_ids: purgedList
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -2340,13 +2492,29 @@ app.get('/api/projects/sync/export-bundle', async (req, res) => {
 // 2. Import / Upsert bulk projects bundle (can be triggered from local or remote)
 app.post('/api/projects/sync/import-bundle', async (req, res) => {
   try {
-    const { projects = [], boards = [], tasks = [], actor_name = 'Sync Engine' } = req.body;
+    const { projects = [], boards = [], tasks = [], purged_project_ids = [], actor_name = 'Sync Engine' } = req.body;
     let projectsSynced = 0;
     let boardsSynced = 0;
     let tasksSynced = 0;
 
+    // Load local permanently purged projects
+    let localPurgedList = [];
+    try {
+      const localPurgedRaw = await getSystemSetting('purged_project_ids', '[]');
+      localPurgedList = JSON.parse(localPurgedRaw || '[]');
+    } catch(e) {}
+
+    // Merge incoming remote purged project IDs into local tombstone list
+    const mergedPurgedSet = new Set([...localPurgedList, ...purged_project_ids]);
+    try {
+      await setSystemSetting('purged_project_ids', JSON.stringify([...mergedPurgedSet]));
+    } catch(e) {}
+
     for (const p of projects) {
       if (!p.id || !p.name) continue;
+      // Skip if this project has been permanently deleted
+      if (mergedPurgedSet.has(p.id)) continue;
+
       const existing = await getOne('SELECT id FROM projects WHERE id = ?', [p.id]);
       if (existing) {
         await query(`
@@ -2386,6 +2554,7 @@ app.post('/api/projects/sync/import-bundle', async (req, res) => {
 
     for (const b of boards) {
       if (!b.id || !b.project_id) continue;
+      if (mergedPurgedSet.has(b.project_id)) continue;
       const existing = await getOne('SELECT id FROM boards WHERE id = ?', [b.id]);
       if (!existing) {
         await query('INSERT INTO boards (id, project_id, name) VALUES (?, ?, ?)', [b.id, b.project_id, b.name || 'Main Board']);

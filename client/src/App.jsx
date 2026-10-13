@@ -749,6 +749,9 @@ export default function App() {
                   onBulkUpdate={handleBulkUpdate}
                   onOpenTaskModal={setInspectedTask}
                   onAddTask={handleCreateTask}
+                  project={selectedProject}
+                  onOpenProjectSettings={() => setShowEditProjectModal(true)}
+                  currentUser={currentUser}
                 />
               ) : (
                 <KanbanBoard
