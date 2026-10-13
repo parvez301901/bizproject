@@ -16,10 +16,12 @@ import {
   Gift,
   ListChecks,
   Trash2,
-  Plus
+  Plus,
+  FileQuestion
 } from 'lucide-react';
 import { api } from '../services/api';
 import { useLanguage } from '../LanguageContext';
+import QuestionnaireBuilderModal from './QuestionnaireBuilderModal';
 
 const DEFAULT_DEPARTMENTS = [
   'Engineering',
@@ -69,16 +71,18 @@ export default function OnboardModal({ onClose, onCreated }) {
 
   // Initial Onboarding Tasks & Rewards
   const [onboardingTasks, setOnboardingTasks] = useState([
-    { title: 'Personal and emergency contact information verification', category: 'HR', xp: 30 },
-    { title: 'Sign employment agreement and company policies', category: 'Legal & HR', xp: 40 },
-    { title: 'Setup company credentials, Google Workspace & 2FA', category: 'IT Security', xp: 50 },
-    { title: 'Schedule 1-on-1 welcome session with mentor & manager', category: 'Team & Culture', xp: 35 },
-    { title: 'Configure workstation tools & software licenses', category: 'IT & Dev', xp: 45 },
-    { title: 'Review company mission, project roadmap & team workflows', category: 'Training', xp: 50 }
+    { title: 'Personal and emergency contact information verification', category: 'HR', xp: 30, task_type: 'standard' },
+    { title: 'Sign employment agreement and company policies', category: 'Legal & HR', xp: 40, task_type: 'standard' },
+    { title: 'Setup company credentials, Google Workspace & 2FA', category: 'IT Security', xp: 50, task_type: 'standard' },
+    { title: 'Schedule 1-on-1 welcome session with mentor & manager', category: 'Team & Culture', xp: 35, task_type: 'standard' },
+    { title: 'Configure workstation tools & software licenses', category: 'IT & Dev', xp: 45, task_type: 'standard' },
+    { title: 'Review company mission, project roadmap & team workflows', category: 'Training', xp: 50, task_type: 'standard' }
   ]);
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskCategory, setNewTaskCategory] = useState('General');
   const [newTaskXp, setNewTaskXp] = useState(40);
+  const [builderModalOpen, setBuilderModalOpen] = useState(false);
+  const [editingTaskIndex, setEditingTaskIndex] = useState(null);
 
   const handleAddOnboardingTask = (e) => {
     e.preventDefault();
@@ -88,7 +92,9 @@ export default function OnboardModal({ onClose, onCreated }) {
       {
         title: newTaskTitle.trim(),
         category: newTaskCategory,
-        xp: Number(newTaskXp) || 35
+        xp: Number(newTaskXp) || 35,
+        task_type: 'standard',
+        form_schema: null
       }
     ]);
     setNewTaskTitle('');
@@ -96,6 +102,25 @@ export default function OnboardModal({ onClose, onCreated }) {
 
   const handleRemoveOnboardingTask = (index) => {
     setOnboardingTasks(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const openFormBuilder = (idx) => {
+    setEditingTaskIndex(idx);
+    setBuilderModalOpen(true);
+  };
+
+  const saveFormSchema = (schema) => {
+    if (editingTaskIndex === null) return;
+    setOnboardingTasks(prev => prev.map((tItem, i) => {
+      if (i === editingTaskIndex) {
+        return {
+          ...tItem,
+          task_type: schema && schema.length > 0 ? 'form' : 'standard',
+          form_schema: schema && schema.length > 0 ? schema : null
+        };
+      }
+      return tItem;
+    }));
   };
 
   const handleNext = () => {
@@ -416,6 +441,24 @@ export default function OnboardModal({ onClose, onCreated }) {
                         </span>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => openFormBuilder(idx)}
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border flex items-center gap-1 transition-colors cursor-pointer ${
+                            tItem.form_schema && tItem.form_schema.length > 0
+                              ? 'bg-teal-50 text-teal-700 border-teal-300 hover:bg-teal-100'
+                              : 'bg-white text-slate-500 border-slate-200 hover:text-emerald-700 hover:border-emerald-300'
+                          }`}
+                          title="Configure Questionnaire / Form for this task"
+                        >
+                          <FileQuestion className="w-3 h-3" />
+                          <span>
+                            {tItem.form_schema && tItem.form_schema.length > 0
+                              ? `${tItem.form_schema.length} Questions`
+                              : '+ Form'}
+                          </span>
+                        </button>
+
                         <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
                           +{tItem.xp} XP
                         </span>
@@ -530,6 +573,18 @@ export default function OnboardModal({ onClose, onCreated }) {
           )}
         </div>
       </div>
+
+      {/* Questionnaire Builder Submodal */}
+      <QuestionnaireBuilderModal
+        isOpen={builderModalOpen}
+        onClose={() => {
+          setBuilderModalOpen(false);
+          setEditingTaskIndex(null);
+        }}
+        taskTitle={editingTaskIndex !== null ? onboardingTasks[editingTaskIndex]?.title : ''}
+        initialSchema={editingTaskIndex !== null ? onboardingTasks[editingTaskIndex]?.form_schema || [] : []}
+        onSave={saveFormSchema}
+      />
     </div>
   );
 }

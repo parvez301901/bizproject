@@ -662,10 +662,11 @@ app.post('/api/users/onboard', async (req, res) => {
     if (custom_checklists.length > 0) {
       for (const t of custom_checklists) {
         const taskXp = t.xp || t.xp_reward || 35;
+        const formSchemaStr = t.form_schema ? (typeof t.form_schema === 'string' ? t.form_schema : JSON.stringify(t.form_schema)) : null;
         await query(`
-          INSERT INTO onboarding_tasks (id, user_id, title, category, is_completed, due_date, xp_reward, xp_claimed, approval_status, created_by)
-          VALUES (?, ?, ?, ?, 0, ?, ?, 0, 'pending', 'admin')
-        `, [uuidv4(), userId, t.title || t, t.category || 'General', '2026-10-15', taskXp]);
+          INSERT INTO onboarding_tasks (id, user_id, title, category, is_completed, due_date, xp_reward, xp_claimed, approval_status, created_by, task_type, form_schema)
+          VALUES (?, ?, ?, ?, 0, ?, ?, 0, 'pending', 'admin', ?, ?)
+        `, [uuidv4(), userId, t.title || t, t.category || 'General', '2026-10-15', taskXp, t.task_type || 'standard', formSchemaStr]);
       }
     } else {
       await assignCommonOnboardingTasksToUser(userId);
@@ -1169,7 +1170,16 @@ app.get('/api/users/:id/onboarding', async (req, res) => {
 // Assign a new onboarding task to an employee with custom reward XP
 app.post('/api/users/:id/onboarding', async (req, res) => {
   try {
-    const { title, category = 'General', xp_reward = 35, due_date, actor_name = 'Admin', created_by = 'admin' } = req.body;
+    const { 
+      title, 
+      category = 'General', 
+      xp_reward = 35, 
+      due_date, 
+      actor_name = 'Admin', 
+      created_by = 'admin',
+      task_type = 'standard',
+      form_schema = null
+    } = req.body;
     if (!title || !title.trim()) {
       return res.status(400).json({ error: 'Task title is required' });
     }
@@ -1181,11 +1191,12 @@ app.post('/api/users/:id/onboarding', async (req, res) => {
     const dueDateToUse = due_date || new Date(Date.now() + 7 * 86400000).toISOString().substring(0, 10);
     const rewardToUse = Number(xp_reward) || 35;
     const taskCreator = created_by || 'admin';
+    const formSchemaStr = form_schema ? (typeof form_schema === 'string' ? form_schema : JSON.stringify(form_schema)) : null;
 
     await query(`
-      INSERT INTO onboarding_tasks (id, user_id, title, category, is_completed, due_date, xp_reward, xp_claimed, approval_status, created_by)
-      VALUES (?, ?, ?, ?, 0, ?, ?, 0, 'pending', ?)
-    `, [taskId, user.id, title.trim(), category, dueDateToUse, rewardToUse, taskCreator]);
+      INSERT INTO onboarding_tasks (id, user_id, title, category, is_completed, due_date, xp_reward, xp_claimed, approval_status, created_by, task_type, form_schema)
+      VALUES (?, ?, ?, ?, 0, ?, ?, 0, 'pending', ?, ?, ?)
+    `, [taskId, user.id, title.trim(), category, dueDateToUse, rewardToUse, taskCreator, task_type || 'standard', formSchemaStr]);
 
     // Recalculate user onboarding progress
     const allTasks = await query('SELECT count(*) as total, sum(is_completed) as completed FROM onboarding_tasks WHERE user_id = ?', [user.id]);
@@ -1201,7 +1212,7 @@ app.post('/api/users/:id/onboarding', async (req, res) => {
       entity_id: taskId,
       user_name: actor_name,
       action: 'ONBOARDING_TASK_ASSIGNED',
-      details: `Assigned new onboarding checklist task "${title.trim()}" (${category}, +${rewardToUse} XP) to ${user.full_name}`
+      details: `Assigned new onboarding checklist task "${title.trim()}" (${category}, +${rewardToUse} XP, type: ${task_type}) to ${user.full_name}`
     });
 
     const created = await getOne('SELECT * FROM onboarding_tasks WHERE id = ?', [taskId]);
@@ -1214,22 +1225,40 @@ app.post('/api/users/:id/onboarding', async (req, res) => {
 // Update an onboarding task title/category/due_date/xp_reward (members or admins editing tasks)
 app.put('/api/onboarding/:taskId', async (req, res) => {
   try {
-    const { title, category, xp_reward, due_date, actor_name = 'Member' } = req.body;
+    const { 
+      title, 
+      category, 
+      xp_reward, 
+      due_date, 
+      actor_name = 'Member',
+      task_type,
+      form_schema,
+      form_submission
+    } = req.body;
     const task = await getOne('SELECT * FROM onboarding_tasks WHERE id = ?', [req.params.taskId]);
     if (!task) return res.status(404).json({ error: 'Task not found' });
+
+    const formSchemaStr = form_schema !== undefined ? (typeof form_schema === 'string' ? form_schema : JSON.stringify(form_schema)) : undefined;
+    const formSubStr = form_submission !== undefined ? (typeof form_submission === 'string' ? form_submission : JSON.stringify(form_submission)) : undefined;
 
     await query(`
       UPDATE onboarding_tasks
       SET title = COALESCE(?, title),
           category = COALESCE(?, category),
           xp_reward = COALESCE(?, xp_reward),
-          due_date = COALESCE(?, due_date)
+          due_date = COALESCE(?, due_date),
+          task_type = COALESCE(?, task_type),
+          form_schema = COALESCE(?, form_schema),
+          form_submission = COALESCE(?, form_submission)
       WHERE id = ?
     `, [
       title ? title.trim() : null,
       category || null,
       xp_reward !== undefined ? Number(xp_reward) : null,
       due_date || null,
+      task_type || null,
+      formSchemaStr !== undefined ? formSchemaStr : null,
+      formSubStr !== undefined ? formSubStr : null,
       task.id
     ]);
 
@@ -1243,6 +1272,48 @@ app.put('/api/onboarding/:taskId', async (req, res) => {
 
     const updated = await getOne('SELECT * FROM onboarding_tasks WHERE id = ?', [task.id]);
     res.json(updated);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Submit a questionnaire / form response for an onboarding task
+app.post('/api/onboarding/:taskId/submit-form', async (req, res) => {
+  try {
+    const { answers, actor_name = 'Member' } = req.body;
+    const task = await getOne('SELECT * FROM onboarding_tasks WHERE id = ?', [req.params.taskId]);
+    if (!task) return res.status(404).json({ error: 'Task not found' });
+
+    const answersStr = typeof answers === 'string' ? answers : JSON.stringify(answers || {});
+    const completedAt = new Date().toISOString();
+
+    await query(`
+      UPDATE onboarding_tasks
+      SET form_submission = ?,
+          is_completed = 1,
+          completed_at = ?,
+          approval_status = 'pending_approval'
+      WHERE id = ?
+    `, [answersStr, completedAt, task.id]);
+
+    // Recalculate user onboarding progress
+    const allTasks = await query('SELECT count(*) as total, sum(is_completed) as completed FROM onboarding_tasks WHERE user_id = ?', [task.user_id]);
+    const total = Number(allTasks[0]?.total || 0);
+    const completed = Number(allTasks[0]?.completed || 0);
+    const progressPercent = total > 0 ? Math.round((completed / total) * 100) : 0;
+    const userStatus = progressPercent === 100 ? 'active' : 'onboarding';
+    await query('UPDATE users SET onboarding_progress = ?, status = ? WHERE id = ?', [progressPercent, userStatus, task.user_id]);
+
+    await logActivity({
+      entity_type: 'onboarding',
+      entity_id: task.id,
+      user_name: actor_name,
+      action: 'ONBOARDING_FORM_SUBMITTED',
+      details: `Submitted responses for questionnaire milestone "${task.title}"`
+    });
+
+    const updated = await getOne('SELECT * FROM onboarding_tasks WHERE id = ?', [task.id]);
+    res.json({ success: true, task: updated, progressPercent, userStatus });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -1414,9 +1485,9 @@ async function assignCommonOnboardingTasksToUser(userId) {
       const existing = await query('SELECT id FROM onboarding_tasks WHERE user_id = ? AND title = ?', [userId, ct.title]);
       if (existing.length === 0) {
         await query(`
-          INSERT INTO onboarding_tasks (id, user_id, title, category, is_completed, due_date, xp_reward, xp_claimed, approval_status, created_by)
-          VALUES (?, ?, ?, ?, 0, ?, ?, 0, 'pending', 'admin')
-        `, [uuidv4(), userId, ct.title, ct.category || 'General', '2026-10-31', Number(ct.xp_reward) || 35]);
+          INSERT INTO onboarding_tasks (id, user_id, title, category, is_completed, due_date, xp_reward, xp_claimed, approval_status, created_by, task_type, form_schema)
+          VALUES (?, ?, ?, ?, 0, ?, ?, 0, 'pending', 'admin', ?, ?)
+        `, [uuidv4(), userId, ct.title, ct.category || 'General', '2026-10-31', Number(ct.xp_reward) || 35, ct.task_type || 'standard', ct.form_schema || null]);
       }
     }
 
@@ -1465,7 +1536,14 @@ app.post('/api/common-onboarding-tasks', async (req, res) => {
       return res.status(403).json({ error: 'Permission denied: Only administrators can create common onboarding tasks.' });
     }
 
-    const { title, category = 'General', xp_reward = 35, actor_name = 'Admin' } = req.body;
+    const { 
+      title, 
+      category = 'General', 
+      xp_reward = 35, 
+      actor_name = 'Admin',
+      task_type = 'standard',
+      form_schema = null
+    } = req.body;
     if (!title || !title.trim()) {
       return res.status(400).json({ error: 'Task title is required.' });
     }
@@ -1473,18 +1551,19 @@ app.post('/api/common-onboarding-tasks', async (req, res) => {
     const taskId = 'cot_' + uuidv4().substring(0, 8);
     const maxOrder = await query('SELECT MAX(order_index) as max_idx FROM common_onboarding_tasks');
     const nextOrder = (Number(maxOrder[0]?.max_idx) || 0) + 1;
+    const formSchemaStr = form_schema ? (typeof form_schema === 'string' ? form_schema : JSON.stringify(form_schema)) : null;
 
     await query(`
-      INSERT INTO common_onboarding_tasks (id, title, category, xp_reward, order_index)
-      VALUES (?, ?, ?, ?, ?)
-    `, [taskId, title.trim(), category.trim(), Number(xp_reward) || 35, nextOrder]);
+      INSERT INTO common_onboarding_tasks (id, title, category, xp_reward, order_index, task_type, form_schema)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `, [taskId, title.trim(), category.trim(), Number(xp_reward) || 35, nextOrder, task_type || 'standard', formSchemaStr]);
 
     await logActivity({
       entity_type: 'onboarding',
       entity_id: taskId,
       user_name: actor_name,
       action: 'COMMON_TASK_CREATED',
-      details: `Created common onboarding task template "${title}" (+${xp_reward} XP)`
+      details: `Created common onboarding task template "${title}" (+${xp_reward} XP, type: ${task_type})`
     });
 
     const created = await getOne('SELECT * FROM common_onboarding_tasks WHERE id = ?', [taskId]);
@@ -1502,18 +1581,38 @@ app.put('/api/common-onboarding-tasks/:id', async (req, res) => {
       return res.status(403).json({ error: 'Permission denied.' });
     }
 
-    const { title, category, xp_reward, order_index, actor_name = 'Admin' } = req.body;
+    const { 
+      title, 
+      category, 
+      xp_reward, 
+      order_index, 
+      actor_name = 'Admin',
+      task_type,
+      form_schema
+    } = req.body;
     const task = await getOne('SELECT * FROM common_onboarding_tasks WHERE id = ?', [req.params.id]);
     if (!task) return res.status(404).json({ error: 'Common task not found.' });
+
+    const formSchemaStr = form_schema !== undefined ? (typeof form_schema === 'string' ? form_schema : JSON.stringify(form_schema)) : undefined;
 
     await query(`
       UPDATE common_onboarding_tasks
       SET title = COALESCE(?, title),
           category = COALESCE(?, category),
           xp_reward = COALESCE(?, xp_reward),
-          order_index = COALESCE(?, order_index)
+          order_index = COALESCE(?, order_index),
+          task_type = COALESCE(?, task_type),
+          form_schema = COALESCE(?, form_schema)
       WHERE id = ?
-    `, [title, category, xp_reward !== undefined ? Number(xp_reward) : null, order_index !== undefined ? Number(order_index) : null, req.params.id]);
+    `, [
+      title || null, 
+      category || null, 
+      xp_reward !== undefined ? Number(xp_reward) : null, 
+      order_index !== undefined ? Number(order_index) : null, 
+      task_type || null,
+      formSchemaStr !== undefined ? formSchemaStr : null,
+      req.params.id
+    ]);
 
     await logActivity({
       entity_type: 'onboarding',

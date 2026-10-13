@@ -197,11 +197,15 @@ function setupSQLiteSchema() {
   try { sqliteDb.exec("ALTER TABLE projects ADD COLUMN database_tech TEXT"); } catch(e) {}
   try { sqliteDb.exec("ALTER TABLE projects ADD COLUMN assigned_user_ids TEXT"); } catch(e) {}
   try { sqliteDb.exec("ALTER TABLE projects ADD COLUMN hosting_info TEXT"); } catch(e) {}
-  try { sqliteDb.exec("ALTER TABLE projects ADD COLUMN hosting_access_user_ids TEXT"); } catch(e) {}
   try { sqliteDb.exec("ALTER TABLE onboarding_tasks ADD COLUMN xp_reward INTEGER DEFAULT 35"); } catch(e) {}
   try { sqliteDb.exec("ALTER TABLE onboarding_tasks ADD COLUMN xp_claimed INTEGER DEFAULT 0"); } catch(e) {}
   try { sqliteDb.exec("ALTER TABLE onboarding_tasks ADD COLUMN approval_status TEXT DEFAULT 'pending'"); } catch(e) {}
   try { sqliteDb.exec("ALTER TABLE onboarding_tasks ADD COLUMN created_by TEXT DEFAULT 'admin'"); } catch(e) {}
+  try { sqliteDb.exec("ALTER TABLE onboarding_tasks ADD COLUMN task_type TEXT DEFAULT 'standard'"); } catch(e) {}
+  try { sqliteDb.exec("ALTER TABLE onboarding_tasks ADD COLUMN form_schema TEXT"); } catch(e) {}
+  try { sqliteDb.exec("ALTER TABLE onboarding_tasks ADD COLUMN form_submission TEXT"); } catch(e) {}
+  try { sqliteDb.exec("ALTER TABLE common_onboarding_tasks ADD COLUMN task_type TEXT DEFAULT 'standard'"); } catch(e) {}
+  try { sqliteDb.exec("ALTER TABLE common_onboarding_tasks ADD COLUMN form_schema TEXT"); } catch(e) {}
   try { sqliteDb.exec("ALTER TABLE users ADD COLUMN name_reward_claimed INTEGER DEFAULT 0"); } catch(e) {}
 
   sqliteDb.exec(`
@@ -512,6 +516,11 @@ async function setupPostgresSchema() {
       "ALTER TABLE onboarding_tasks ADD COLUMN IF NOT EXISTS xp_claimed INTEGER DEFAULT 0",
       "ALTER TABLE onboarding_tasks ADD COLUMN IF NOT EXISTS approval_status VARCHAR(32) DEFAULT 'pending'",
       "ALTER TABLE onboarding_tasks ADD COLUMN IF NOT EXISTS created_by VARCHAR(64) DEFAULT 'admin'",
+      "ALTER TABLE onboarding_tasks ADD COLUMN IF NOT EXISTS task_type VARCHAR(32) DEFAULT 'standard'",
+      "ALTER TABLE onboarding_tasks ADD COLUMN IF NOT EXISTS form_schema TEXT",
+      "ALTER TABLE onboarding_tasks ADD COLUMN IF NOT EXISTS form_submission TEXT",
+      "ALTER TABLE common_onboarding_tasks ADD COLUMN IF NOT EXISTS task_type VARCHAR(32) DEFAULT 'standard'",
+      "ALTER TABLE common_onboarding_tasks ADD COLUMN IF NOT EXISTS form_schema TEXT",
       "ALTER TABLE users ADD COLUMN IF NOT EXISTS name_reward_claimed INTEGER DEFAULT 0"
     ];
 

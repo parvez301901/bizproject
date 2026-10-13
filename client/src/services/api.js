@@ -261,6 +261,17 @@ export const api = {
     return res.json();
   },
 
+  async submitOnboardingForm(taskId, answers, actorName) {
+    const res = await authFetch(`${API_BASE}/onboarding/${taskId}/submit-form`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ answers, actor_name: actorName })
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || 'Failed to submit form');
+    return json;
+  },
+
   // Common Onboarding Tasks (Global template for any new user)
   async getCommonOnboardingTasks() {
     const res = await authFetch(`${API_BASE}/common-onboarding-tasks`);

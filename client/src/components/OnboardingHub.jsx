@@ -24,13 +24,17 @@ import {
   Gift,
   Camera,
   Edit2,
-  AlertCircle,
   FileCheck,
+  FileQuestion,
+  ClipboardList,
+  Eye,
   X
 } from 'lucide-react';
 import { api } from '../services/api';
 import { useLanguage } from '../LanguageContext';
 import UploadMemberImageModal from './UploadMemberImageModal';
+import QuestionnaireBuilderModal from './QuestionnaireBuilderModal';
+import OnboardingFormModal from './OnboardingFormModal';
 import brandLogo from '../assets/logo.png';
 
 export default function OnboardingHub({ users = [], onRefresh, onOpenOnboardModal, currentUser, onUpdateCurrentUser }) {
@@ -63,6 +67,7 @@ export default function OnboardingHub({ users = [], onRefresh, onOpenOnboardModa
   const [newCommonTitle, setNewCommonTitle] = useState('');
   const [newCommonCategory, setNewCommonCategory] = useState('General');
   const [newCommonXp, setNewCommonXp] = useState(35);
+  const [newCommonSchema, setNewCommonSchema] = useState(null);
   const [syncStatusMsg, setSyncStatusMsg] = useState('');
 
   // Team Member Wizard State
@@ -134,10 +139,13 @@ export default function OnboardingHub({ users = [], onRefresh, onOpenOnboardModa
         title: newCommonTitle.trim(),
         category: newCommonCategory,
         xp_reward: Number(newCommonXp) || 35,
+        task_type: newCommonSchema && newCommonSchema.length > 0 ? 'form' : 'standard',
+        form_schema: newCommonSchema && newCommonSchema.length > 0 ? newCommonSchema : null,
         actor_name: currentUser?.full_name || 'Admin'
       });
       setCommonTasks(prev => [...prev, created]);
       setNewCommonTitle('');
+      setNewCommonSchema(null);
       showToast('Common onboarding task created successfully!');
     } catch (err) {
       showToast(err.message || 'Failed to create common task', 'error');
@@ -248,7 +256,22 @@ export default function OnboardingHub({ users = [], onRefresh, onOpenOnboardModa
   const [editCategory, setEditCategory] = useState('General');
   const [editDueDate, setEditDueDate] = useState('');
   const [editXpReward, setEditXpReward] = useState(35);
+  const [editFormSchema, setEditFormSchema] = useState(null);
   const [savingEdit, setSavingEdit] = useState(false);
+
+  // Questionnaire builder & submission modal state
+  const [builderModal, setBuilderModal] = useState({
+    isOpen: false,
+    taskTitle: '',
+    initialSchema: [],
+    onSave: null
+  });
+
+  const [activeFormModal, setActiveFormModal] = useState({
+    isOpen: false,
+    task: null,
+    readOnly: false
+  });
 
   const startEditTask = (task) => {
     setEditingTask(task);
@@ -256,6 +279,11 @@ export default function OnboardingHub({ users = [], onRefresh, onOpenOnboardModa
     setEditCategory(task.category || 'General');
     setEditDueDate(task.due_date || '');
     setEditXpReward(Number(task.xp_reward) || 35);
+    try {
+      setEditFormSchema(task.form_schema ? (typeof task.form_schema === 'string' ? JSON.parse(task.form_schema) : task.form_schema) : null);
+    } catch(e) {
+      setEditFormSchema(null);
+    }
   };
 
   const handleSaveEditTask = async (e) => {
@@ -268,6 +296,8 @@ export default function OnboardingHub({ users = [], onRefresh, onOpenOnboardModa
           title: editTitle.trim(),
           category: editCategory,
           xp_reward: Number(editXpReward) || 35,
+          task_type: editFormSchema && editFormSchema.length > 0 ? 'form' : 'standard',
+          form_schema: editFormSchema && editFormSchema.length > 0 ? editFormSchema : null,
           actor_name: currentUser?.full_name || 'Admin'
         });
         setCommonTasks(prev => prev.map(t => t.id === editingTask.id ? { ...t, ...updated } : t));
@@ -278,6 +308,8 @@ export default function OnboardingHub({ users = [], onRefresh, onOpenOnboardModa
           category: editCategory,
           due_date: editDueDate,
           xp_reward: Number(editXpReward) || 35,
+          task_type: editFormSchema && editFormSchema.length > 0 ? 'form' : 'standard',
+          form_schema: editFormSchema && editFormSchema.length > 0 ? editFormSchema : null,
           actor_name: currentUser?.full_name || 'User'
         });
         // Update in team tasks
@@ -398,6 +430,7 @@ export default function OnboardingHub({ users = [], onRefresh, onOpenOnboardModa
   const [newTitle, setNewTitle] = useState('');
   const [newCategory, setNewCategory] = useState('General');
   const [newXpReward, setNewXpReward] = useState(35);
+  const [newCustomSchema, setNewCustomSchema] = useState(null);
   const [addingTask, setAddingTask] = useState(false);
 
   const handleAddNewTask = async (e) => {
@@ -409,11 +442,14 @@ export default function OnboardingHub({ users = [], onRefresh, onOpenOnboardModa
         title: newTitle.trim(),
         category: newCategory,
         xp_reward: Number(newXpReward) || 35,
+        task_type: newCustomSchema && newCustomSchema.length > 0 ? 'form' : 'standard',
+        form_schema: newCustomSchema && newCustomSchema.length > 0 ? newCustomSchema : null,
         created_by: 'admin',
         actor_name: currentUser?.full_name || 'Admin'
       });
       setUserTasks(prev => [...prev, created]);
       setNewTitle('');
+      setNewCustomSchema(null);
       showToast('Onboarding task assigned successfully!');
       onRefresh();
     } catch (err) {
@@ -716,11 +752,25 @@ export default function OnboardingHub({ users = [], onRefresh, onOpenOnboardModa
                         </div>
                         <div 
                           className="flex-1 min-w-0 cursor-pointer"
-                          onClick={() => handleToggleTeamTask(task.id)}
+                          onClick={() => {
+                            if (task.task_type === 'form' || task.form_schema) {
+                              setActiveFormModal({ isOpen: true, task, readOnly: false });
+                            } else {
+                              handleToggleTeamTask(task.id);
+                            }
+                          }}
                         >
-                          <p className={`text-sm font-bold ${task.is_completed ? 'line-through text-slate-400' : 'text-slate-800'}`}>
-                            {task.title}
-                          </p>
+                          <div className="flex items-center gap-2">
+                            <p className={`text-sm font-bold ${task.is_completed ? 'line-through text-slate-400' : 'text-slate-800'}`}>
+                              {task.title}
+                            </p>
+                            {(task.task_type === 'form' || task.form_schema) && (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal-50 text-teal-800 border border-teal-200">
+                                <ClipboardList className="w-3 h-3 text-teal-600" />
+                                <span>Questionnaire</span>
+                              </span>
+                            )}
+                          </div>
                           <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-1.5 text-xs text-slate-400">
                             <span className="bg-slate-100 text-slate-700 font-semibold px-2.5 py-0.5 rounded-md">
                               {task.category || 'General'}
@@ -752,6 +802,19 @@ export default function OnboardingHub({ users = [], onRefresh, onOpenOnboardModa
                                 <Check className="w-3.5 h-3.5 text-emerald-600" />
                                 Approved & Completed
                               </span>
+                            )}
+
+                            {(task.task_type === 'form' || task.form_schema) && !task.is_completed && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActiveFormModal({ isOpen: true, task, readOnly: false });
+                                }}
+                                className="px-2 py-0.5 rounded-lg bg-teal-600 text-white font-bold text-[10px] hover:bg-teal-700 transition-colors shadow-2xs"
+                              >
+                                Fill Form &rarr;
+                              </button>
                             )}
 
                             {task.due_date && <span>Due: {task.due_date}</span>}
@@ -1143,6 +1206,32 @@ export default function OnboardingHub({ users = [], onRefresh, onOpenOnboardModa
                         <option value={75}>+75 XP</option>
                         <option value={100}>+100 XP</option>
                       </select>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setBuilderModal({
+                            isOpen: true,
+                            taskTitle: newTitle || 'Custom Task',
+                            initialSchema: newCustomSchema || [],
+                            onSave: (schema) => setNewCustomSchema(schema)
+                          });
+                        }}
+                        className={`px-3 py-2 rounded-lg text-xs font-semibold border flex items-center gap-1 cursor-pointer transition-colors shrink-0 ${
+                          newCustomSchema && newCustomSchema.length > 0
+                            ? 'bg-teal-50 text-teal-800 border-teal-300'
+                            : 'bg-white text-slate-600 border-slate-200 hover:text-emerald-700 hover:border-emerald-300'
+                        }`}
+                        title="Attach Questionnaire / Form for this task"
+                      >
+                        <FileQuestion className="w-3.5 h-3.5" />
+                        <span>
+                          {newCustomSchema && newCustomSchema.length > 0
+                            ? `${newCustomSchema.length} Questions`
+                            : '+ Form'}
+                        </span>
+                      </button>
+
                       <button
                         type="submit"
                         disabled={addingTask}
@@ -1243,6 +1332,35 @@ export default function OnboardingHub({ users = [], onRefresh, onOpenOnboardModa
                                 <span>Approve & Award XP</span>
                               </button>
                             )}
+
+                            {/* Questionnaire Info / View Responses Button */}
+                            {task.form_submission ? (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActiveFormModal({ isOpen: true, task, readOnly: true });
+                                }}
+                                className="px-2 py-1 text-xs font-semibold text-teal-800 bg-teal-50 hover:bg-teal-100 border border-teal-200 rounded-lg transition-colors cursor-pointer flex items-center gap-1"
+                                title="View candidate questionnaire responses"
+                              >
+                                <Eye className="w-3.5 h-3.5 text-teal-600" />
+                                <span>View Answers</span>
+                              </button>
+                            ) : (task.task_type === 'form' || task.form_schema) ? (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActiveFormModal({ isOpen: true, task, readOnly: true });
+                                }}
+                                className="px-2 py-1 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors cursor-pointer flex items-center gap-1"
+                                title="Preview questionnaire questions"
+                              >
+                                <ClipboardList className="w-3.5 h-3.5 text-slate-500" />
+                                <span>Preview Form</span>
+                              </button>
+                            ) : null}
 
                             {/* Edit Task Button */}
                             <button
@@ -1375,6 +1493,31 @@ export default function OnboardingHub({ users = [], onRefresh, onOpenOnboardModa
                     <option value={75}>+75 XP</option>
                     <option value={100}>+100 XP</option>
                   </select>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBuilderModal({
+                        isOpen: true,
+                        taskTitle: newCommonTitle || 'Global Template Task',
+                        initialSchema: newCommonSchema || [],
+                        onSave: (schema) => setNewCommonSchema(schema)
+                      });
+                    }}
+                    className={`px-3 py-2 rounded-xl text-xs font-semibold border flex items-center gap-1 cursor-pointer transition-colors shrink-0 ${
+                      newCommonSchema && newCommonSchema.length > 0
+                        ? 'bg-teal-50 text-teal-800 border-teal-300'
+                        : 'bg-white text-slate-600 border-slate-200 hover:text-emerald-700 hover:border-emerald-300'
+                    }`}
+                    title="Attach Questionnaire / Form for this task"
+                  >
+                    <FileQuestion className="w-3.5 h-3.5" />
+                    <span>
+                      {newCommonSchema && newCommonSchema.length > 0
+                        ? `${newCommonSchema.length} Questions`
+                        : '+ Form'}
+                    </span>
+                  </button>
 
                   <button
                     type="submit"
@@ -1539,6 +1682,40 @@ export default function OnboardingHub({ users = [], onRefresh, onOpenOnboardModa
                     </span>
                   </div>
                 </div>
+              </div>
+
+              {/* Questionnaire Form Attachment Section */}
+              <div className="p-3 bg-slate-50 border border-slate-200/90 rounded-xl flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                    <ClipboardList className="w-4 h-4 text-emerald-600" />
+                    <span>Interactive Questionnaire / Form</span>
+                  </span>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    {editFormSchema && editFormSchema.length > 0
+                      ? `${editFormSchema.length} questions attached to this milestone.`
+                      : 'Attach interactive questions the member must fill to complete this step.'}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setBuilderModal({
+                      isOpen: true,
+                      taskTitle: editTitle || editingTask.title,
+                      initialSchema: editFormSchema || [],
+                      onSave: (schema) => setEditFormSchema(schema)
+                    });
+                  }}
+                  className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-colors cursor-pointer flex items-center gap-1.5 ${
+                    editFormSchema && editFormSchema.length > 0
+                      ? 'bg-teal-50 text-teal-800 border-teal-300 hover:bg-teal-100'
+                      : 'bg-white text-slate-700 border-slate-200 hover:border-emerald-300'
+                  }`}
+                >
+                  <FileQuestion className="w-3.5 h-3.5" />
+                  <span>{editFormSchema && editFormSchema.length > 0 ? 'Edit Questions' : '+ Attach Form'}</span>
+                </button>
               </div>
 
               {!editingTask.isCommonTask && (
@@ -1822,6 +1999,41 @@ export default function OnboardingHub({ users = [], onRefresh, onOpenOnboardModa
           </div>
         </div>
       )}
+
+      {/* Questionnaire Builder Submodal */}
+      <QuestionnaireBuilderModal
+        isOpen={builderModal.isOpen}
+        onClose={() => setBuilderModal(prev => ({ ...prev, isOpen: false }))}
+        taskTitle={builderModal.taskTitle}
+        initialSchema={builderModal.initialSchema}
+        onSave={(schema) => {
+          if (builderModal.onSave) builderModal.onSave(schema);
+        }}
+      />
+
+      {/* Onboarding Interactive Form & Response Viewer Modal */}
+      <OnboardingFormModal
+        isOpen={activeFormModal.isOpen}
+        onClose={() => setActiveFormModal(prev => ({ ...prev, isOpen: false, task: null }))}
+        task={activeFormModal.task}
+        currentUser={currentUser}
+        readOnly={activeFormModal.readOnly}
+        onSubmitted={(res) => {
+          showToast('Questionnaire submitted! Waiting for admin review.');
+          if (res.task) {
+            setTeamTasks(prev => prev.map(t => t.id === res.task.id ? { ...t, ...res.task } : t));
+            setUserTasks(prev => prev.map(t => t.id === res.task.id ? { ...t, ...res.task } : t));
+          }
+          if (currentUser && onUpdateCurrentUser && res.progressPercent !== undefined) {
+            onUpdateCurrentUser({
+              ...currentUser,
+              onboarding_progress: res.progressPercent,
+              status: res.userStatus
+            });
+          }
+          if (onRefresh) onRefresh();
+        }}
+      />
     </div>
   );
 }
