@@ -556,6 +556,12 @@ async function query(sql, params = []) {
   }
 }
 
+// Quick helper to get single row
+async function getOne(sql, params = []) {
+  const rows = await query(sql, params);
+  return rows && rows.length > 0 ? rows[0] : null;
+}
+
 // App System Settings Cache & Helpers
 let cachedTimezone = null;
 
