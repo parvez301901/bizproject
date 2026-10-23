@@ -207,6 +207,7 @@ function setupSQLiteSchema() {
   try { sqliteDb.exec("ALTER TABLE common_onboarding_tasks ADD COLUMN task_type TEXT DEFAULT 'standard'"); } catch(e) {}
   try { sqliteDb.exec("ALTER TABLE common_onboarding_tasks ADD COLUMN form_schema TEXT"); } catch(e) {}
   try { sqliteDb.exec("ALTER TABLE users ADD COLUMN name_reward_claimed INTEGER DEFAULT 0"); } catch(e) {}
+  try { sqliteDb.exec("ALTER TABLE instruction_videos ADD COLUMN xp_reward INTEGER DEFAULT 25"); } catch(e) {}
 
   sqliteDb.exec(`
     CREATE TABLE IF NOT EXISTS work_logs (
@@ -258,12 +259,26 @@ function setupSQLiteSchema() {
       allowed_user_ids TEXT, -- JSON array of user IDs
       category TEXT DEFAULT 'Training & SOP',
       tags TEXT, -- JSON array
+      xp_reward INTEGER DEFAULT 25,
       created_at TEXT DEFAULT (datetime('now')),
       FOREIGN KEY (uploader_id) REFERENCES users(id) ON DELETE CASCADE
     );
     CREATE INDEX IF NOT EXISTS idx_instruction_videos_uploader ON instruction_videos(uploader_id);
     CREATE INDEX IF NOT EXISTS idx_instruction_videos_audience ON instruction_videos(audience_type);
     CREATE INDEX IF NOT EXISTS idx_instruction_videos_created ON instruction_videos(created_at);
+
+    CREATE TABLE IF NOT EXISTS video_watches (
+      id TEXT PRIMARY KEY,
+      video_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      xp_awarded INTEGER DEFAULT 0,
+      watched_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (video_id) REFERENCES instruction_videos(id) ON DELETE CASCADE,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+      UNIQUE(video_id, user_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_video_watches_user ON video_watches(user_id);
+    CREATE INDEX IF NOT EXISTS idx_video_watches_video ON video_watches(video_id);
 
     CREATE TABLE IF NOT EXISTS common_onboarding_tasks (
       id TEXT PRIMARY KEY,
@@ -441,7 +456,17 @@ async function setupPostgresSchema() {
         allowed_user_ids TEXT,
         category VARCHAR(64) DEFAULT 'Training & SOP',
         tags TEXT,
+        xp_reward INTEGER DEFAULT 25,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS video_watches (
+        id VARCHAR(64) PRIMARY KEY,
+        video_id VARCHAR(64) NOT NULL REFERENCES instruction_videos(id) ON DELETE CASCADE,
+        user_id VARCHAR(64) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        xp_awarded INTEGER DEFAULT 0,
+        watched_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(video_id, user_id)
       );
 
       CREATE TABLE IF NOT EXISTS common_onboarding_tasks (
@@ -481,6 +506,8 @@ async function setupPostgresSchema() {
       CREATE INDEX IF NOT EXISTS idx_messages_type ON messages(recipient_type);
       CREATE INDEX IF NOT EXISTS idx_instruction_videos_uploader ON instruction_videos(uploader_id);
       CREATE INDEX IF NOT EXISTS idx_instruction_videos_audience ON instruction_videos(audience_type);
+      CREATE INDEX IF NOT EXISTS idx_video_watches_user ON video_watches(user_id);
+      CREATE INDEX IF NOT EXISTS idx_video_watches_video ON video_watches(video_id);
       CREATE INDEX IF NOT EXISTS idx_earnings_rewards_user ON earnings_rewards(user_id);
       CREATE INDEX IF NOT EXISTS idx_earnings_rewards_task ON earnings_rewards(task_id);
     `);
@@ -521,7 +548,8 @@ async function setupPostgresSchema() {
       "ALTER TABLE onboarding_tasks ADD COLUMN IF NOT EXISTS form_submission TEXT",
       "ALTER TABLE common_onboarding_tasks ADD COLUMN IF NOT EXISTS task_type VARCHAR(32) DEFAULT 'standard'",
       "ALTER TABLE common_onboarding_tasks ADD COLUMN IF NOT EXISTS form_schema TEXT",
-      "ALTER TABLE users ADD COLUMN IF NOT EXISTS name_reward_claimed INTEGER DEFAULT 0"
+      "ALTER TABLE users ADD COLUMN IF NOT EXISTS name_reward_claimed INTEGER DEFAULT 0",
+      "ALTER TABLE instruction_videos ADD COLUMN IF NOT EXISTS xp_reward INTEGER DEFAULT 25"
     ];
 
     for (const sql of alterColumns) {

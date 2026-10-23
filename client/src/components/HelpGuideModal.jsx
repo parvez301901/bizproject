@@ -111,12 +111,12 @@ export const SYSTEM_GUIDES = [
       'Click "Instruction Videos" in the left sidebar navigation.',
       'Browse through SOP categories: Training & SOP, Developer Guides, Design Systems, or Security.',
       'Use the search bar to find videos by title, topic, or keyword.',
-      'Click "Watch Video" to play inside the high-clarity video player modal with full descriptions.',
-      'Admins can upload local MP4 video files or paste YouTube / Vimeo links.'
+      'Click "Watch Video" to play inside the high-clarity video player modal and automatically earn the video\'s XP reward.',
+      'Publishers can upload MP4 files or direct URLs, choose audience permissions, and set custom XP rewards (e.g. +25 XP, +50 XP, +100 XP).'
     ],
     actionLabel: 'Go to Instruction Videos',
     actionTab: 'videos',
-    tips: 'Videos tagged as "Open to All" are accessible to all team members, while restricted videos are private to assigned personnel.'
+    tips: 'Watching instruction videos automatically awards custom XP to your profile and leaderboard ranking! Publishers decide the exact XP reward during publishing.'
   },
   {
     id: 'leaderboard_xp',

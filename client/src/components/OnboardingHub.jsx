@@ -21,6 +21,7 @@ import {
   ArrowRight,
   Trophy,
   Check,
+  CheckSquare,
   Gift,
   Camera,
   Edit2,
@@ -627,7 +628,7 @@ export default function OnboardingHub({ users = [], onRefresh, onOpenOnboardModa
                   </div>
                 ) : (
                   <div className="p-3.5 bg-amber-50 rounded-2xl border border-amber-200/70 text-amber-900 flex items-center gap-3 shrink-0">
-                    <Sparkles className="w-6 h-6 text-amber-500" />
+                    <Gift className="w-6 h-6 text-amber-500" />
                     <div>
                       <span className="text-xs font-bold block">Reward Available</span>
                       <span className="text-base font-extrabold text-amber-700">+5 XP</span>
@@ -945,7 +946,7 @@ export default function OnboardingHub({ users = [], onRefresh, onOpenOnboardModa
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+              <CheckSquare className="w-3.5 h-3.5 text-emerald-600" />
               <span>Common New User Tasks ({commonTasks.length})</span>
             </button>
           </div>
@@ -1415,7 +1416,7 @@ export default function OnboardingHub({ users = [], onRefresh, onOpenOnboardModa
           <div className="bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 border border-emerald-200/90 rounded-2xl p-5 sm:p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="space-y-1">
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold">
-                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                <CheckSquare className="w-3.5 h-3.5 text-emerald-600" />
                 <span>Global Onboarding Roadmap Template</span>
               </div>
               <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">

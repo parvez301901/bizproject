@@ -28,6 +28,7 @@ import OnboardingHub from './components/OnboardingHub';
 import TeamDirectory from './components/TeamDirectory';
 import MondayTable from './components/MondayTable';
 import KanbanBoard from './components/KanbanBoard';
+import TasksView from './components/TasksView';
 import TaskModal from './components/TaskModal';
 import CreateTaskModal from './components/CreateTaskModal';
 import OnboardModal from './components/OnboardModal';
@@ -628,6 +629,20 @@ export default function App() {
             />
           )}
 
+          {activeTab === 'tasks' && (
+            <TasksView
+              currentUser={currentUser}
+              users={activeUsers}
+              projects={projects}
+              onOpenTaskModal={(task) => setInspectedTask(task)}
+              onOpenCreateTaskModal={() => setShowCreateTaskModal(true)}
+              onSelectProject={(proj) => {
+                setSelectedProject(proj);
+                setActiveTab('project');
+              }}
+            />
+          )}
+
           {activeTab === 'leaderboard' && (
             <LeaderboardView
               currentUser={currentUser}
@@ -692,6 +707,10 @@ export default function App() {
             <InstructionVideosView
               users={activeUsers}
               currentUser={currentUser}
+              onUpdateCurrentUser={(updatedUser) => {
+                setCurrentUser(updatedUser);
+                localStorage.setItem('apex_user', JSON.stringify(updatedUser));
+              }}
             />
           )}
 

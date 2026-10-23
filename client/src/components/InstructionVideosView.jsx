@@ -26,7 +26,7 @@ import {
 } from 'lucide-react';
 import { api } from '../services/api';
 
-export default function InstructionVideosView({ users = [], currentUser }) {
+export default function InstructionVideosView({ users = [], currentUser, onUpdateCurrentUser }) {
   const [videos, setVideos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -44,14 +44,47 @@ export default function InstructionVideosView({ users = [], currentUser }) {
   const [fileBase64, setFileBase64] = useState('');
   const [audienceType, setAudienceType] = useState('all'); // 'all' (open for all) | 'selected' (particular people)
   const [selectedUserIds, setSelectedUserIds] = useState([]);
+  const [xpReward, setXpReward] = useState(25);
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
   // Video Player Modal
   const [playingVideo, setPlayingVideo] = useState(null);
+  const [xpNotification, setXpNotification] = useState(null);
 
   const fileInputRef = useRef(null);
   const isAdmin = currentUser?.role === 'admin';
+
+  // Watch video handler with automatic XP awarding
+  const handlePlayVideo = async (video) => {
+    setPlayingVideo(video);
+    setXpNotification(null);
+
+    // If member has not yet claimed XP for this video
+    if (currentUser?.id && !video.has_watched && (Number(video.xp_reward) > 0)) {
+      try {
+        const res = await api.recordVideoWatch(video.id, currentUser.id);
+        if (res && res.xp_awarded > 0) {
+          setXpNotification({
+            amount: res.xp_awarded,
+            message: `+${res.xp_awarded} XP Earned for watching!`
+          });
+          setVideos(prev => prev.map(v => v.id === video.id ? { ...v, has_watched: true } : v));
+          setPlayingVideo(prev => prev ? { ...prev, has_watched: true } : null);
+
+          if (onUpdateCurrentUser) {
+            onUpdateCurrentUser({
+              ...currentUser,
+              xp: res.total_xp,
+              level: res.level
+            });
+          }
+        }
+      } catch (err) {
+        console.error('Failed to claim instruction video XP:', err);
+      }
+    }
+  };
 
   // Load videos
   const loadVideos = async () => {
@@ -150,7 +183,8 @@ export default function InstructionVideosView({ users = [], currentUser }) {
         video_type: videoMode,
         audience_type: audienceType,
         allowed_user_ids: audienceType === 'selected' ? selectedUserIds : [],
-        category
+        category,
+        xp_reward: Math.max(0, parseInt(xpReward, 10) || 0)
       });
 
       // Reset
@@ -161,6 +195,7 @@ export default function InstructionVideosView({ users = [], currentUser }) {
       setFileBase64('');
       setAudienceType('all');
       setSelectedUserIds([]);
+      setXpReward(25);
       setShowUploadModal(false);
       await loadVideos();
     } catch (err) {
@@ -364,7 +399,7 @@ export default function InstructionVideosView({ users = [], currentUser }) {
               >
                 {/* Video Thumbnail / Preview Area */}
                 <div 
-                  onClick={() => setPlayingVideo(video)}
+                  onClick={() => handlePlayVideo(video)}
                   className="relative aspect-video bg-slate-900 flex items-center justify-center cursor-pointer group-hover:opacity-95 transition-opacity overflow-hidden"
                 >
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent z-10" />
@@ -380,17 +415,30 @@ export default function InstructionVideosView({ users = [], currentUser }) {
                       {video.category || 'Training & SOP'}
                     </span>
 
-                    {isOpenForAll ? (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/90 text-slate-950 shadow-xs">
-                        <Globe className="w-3 h-3" />
-                        <span>Open for All</span>
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-500/90 text-white shadow-xs">
-                        <Lock className="w-3 h-3" />
-                        <span>{allowedCount} Selected People</span>
-                      </span>
-                    )}
+                    <div className="flex items-center gap-1.5">
+                      {Number(video.xp_reward) > 0 && (
+                        <span className={`inline-flex items-center gap-1 text-[10px] font-extrabold px-2 py-0.5 rounded-full shadow-xs ${
+                          video.has_watched
+                            ? 'bg-emerald-400 text-slate-950 border border-emerald-300'
+                            : 'bg-amber-400 text-slate-950 border border-amber-300'
+                        }`}>
+                          <Sparkles className="w-3 h-3 fill-slate-950" />
+                          <span>{video.has_watched ? `+${video.xp_reward} XP Claimed` : `+${video.xp_reward} XP`}</span>
+                        </span>
+                      )}
+
+                      {isOpenForAll ? (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/90 text-slate-950 shadow-xs">
+                          <Globe className="w-3 h-3" />
+                          <span>Open for All</span>
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-500/90 text-white shadow-xs">
+                          <Lock className="w-3 h-3" />
+                          <span>{allowedCount} Selected People</span>
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   {/* Bottom Duration / Type */}
@@ -408,7 +456,7 @@ export default function InstructionVideosView({ users = [], currentUser }) {
                 <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between space-y-3">
                   <div className="space-y-1.5">
                     <h3 
-                      onClick={() => setPlayingVideo(video)}
+                      onClick={() => handlePlayVideo(video)}
                       className="font-bold text-slate-900 text-sm sm:text-base leading-snug group-hover:text-emerald-700 transition-colors cursor-pointer line-clamp-2"
                     >
                       {video.title}
@@ -437,12 +485,16 @@ export default function InstructionVideosView({ users = [], currentUser }) {
                     {/* Actions: Watch & Delete */}
                     <div className="flex items-center gap-1">
                       <button
-                        onClick={() => setPlayingVideo(video)}
-                        className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-semibold rounded-lg transition-colors cursor-pointer flex items-center gap-1"
+                        onClick={() => handlePlayVideo(video)}
+                        className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-colors cursor-pointer flex items-center gap-1 ${
+                          video.has_watched
+                            ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800'
+                            : 'bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200/80'
+                        }`}
                         title="Watch video"
                       >
                         <Play className="w-3 h-3" />
-                        <span>Watch</span>
+                        <span>{video.has_watched ? 'Watch Again' : (Number(video.xp_reward) > 0 ? `Watch (+${video.xp_reward} XP)` : 'Watch')}</span>
                       </button>
 
                       {isAdmin && (
@@ -718,6 +770,55 @@ export default function InstructionVideosView({ users = [], currentUser }) {
                 )}
               </div>
 
+              {/* XP Reward Setting */}
+              <div className="bg-amber-50/70 p-4 rounded-xl border border-amber-200/90 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-amber-950 flex items-center gap-1.5">
+                    <Sparkles className="w-4 h-4 text-amber-600" />
+                    <span>Viewer XP Reward *</span>
+                  </label>
+                  <span className="text-[11px] text-amber-800 font-medium">Decide how much XP members get for watching</span>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="relative w-36">
+                    <input
+                      type="number"
+                      min="0"
+                      max="1000"
+                      step="5"
+                      value={xpReward}
+                      onChange={(e) => setXpReward(e.target.value)}
+                      className="w-full text-xs font-bold bg-white border border-amber-300 rounded-lg p-2.5 pl-7 pr-8 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 text-slate-800"
+                      placeholder="25"
+                    />
+                    <span className="absolute left-2.5 top-2.5 text-xs font-bold text-amber-600">+</span>
+                    <span className="absolute right-2.5 top-2.5 text-[11px] font-bold text-slate-400">XP</span>
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    {[15, 25, 50, 100].map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => setXpReward(preset)}
+                        className={`px-2.5 py-1.5 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
+                          Number(xpReward) === preset
+                            ? 'bg-amber-500 text-slate-950 border-amber-500 shadow-xs'
+                            : 'bg-white text-slate-700 border-amber-200 hover:bg-amber-100/70'
+                        }`}
+                      >
+                        +{preset} XP
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <p className="text-[11px] text-amber-800/90 leading-relaxed">
+                  Every eligible team member will instantly receive <strong>+{Number(xpReward) || 0} XP</strong> in their employee profile and leaderboard when they watch this instruction video.
+                </p>
+              </div>
+
               {/* Submit Buttons */}
               <div className="flex justify-end gap-2.5 pt-2">
                 <button
@@ -745,7 +846,10 @@ export default function InstructionVideosView({ users = [], currentUser }) {
       {playingVideo && (
         <div 
           className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 sm:p-6 animate-fadeIn"
-          onClick={() => setPlayingVideo(null)}
+          onClick={() => {
+            setPlayingVideo(null);
+            setXpNotification(null);
+          }}
         >
           <div 
             className="bg-slate-900 text-white rounded-2xl w-full max-w-4xl border border-white/10 shadow-2xl flex flex-col overflow-hidden animate-scaleUp"
@@ -761,13 +865,42 @@ export default function InstructionVideosView({ users = [], currentUser }) {
                   {playingVideo.title}
                 </h3>
               </div>
-              <button
-                onClick={() => setPlayingVideo(null)}
-                className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              <div className="flex items-center gap-3">
+                {Number(playingVideo.xp_reward) > 0 && (
+                  <span className={`inline-flex items-center gap-1 text-[11px] font-extrabold px-2.5 py-0.5 rounded-full ${
+                    playingVideo.has_watched
+                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/30'
+                      : 'bg-amber-400 text-slate-950 font-bold'
+                  }`}>
+                    <Sparkles className="w-3 h-3" />
+                    <span>{playingVideo.has_watched ? `+${playingVideo.xp_reward} XP Claimed` : `+${playingVideo.xp_reward} XP Reward`}</span>
+                  </span>
+                )}
+                <button
+                  onClick={() => {
+                    setPlayingVideo(null);
+                    setXpNotification(null);
+                  }}
+                  className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
+
+            {/* Celebratory XP Earned Notification Banner */}
+            {xpNotification && (
+              <div className="bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-600 px-4 py-2.5 flex items-center justify-between text-xs text-white shadow-inner animate-fadeIn">
+                <div className="flex items-center gap-2">
+                  <span className="text-base">🎉</span>
+                  <span className="font-extrabold">{xpNotification.message}</span>
+                  <span className="text-emerald-100 hidden sm:inline">• Added to your employee profile and leaderboard rankings!</span>
+                </div>
+                <span className="bg-white text-emerald-950 font-black text-xs px-2.5 py-0.5 rounded-full shadow-xs">
+                  +{xpNotification.amount} XP
+                </span>
+              </div>
+            )}
 
             {/* Video Screen */}
             <div className="relative aspect-video bg-black flex items-center justify-center">

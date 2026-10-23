@@ -3,6 +3,16 @@ const https = require('https');
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'parvez301@gmail.com';
 
+function escapeHtml(str) {
+  if (!str || typeof str !== 'string') return '';
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function getTransporter() {
   const host = process.env.SMTP_HOST;
   const user = process.env.SMTP_USER;
@@ -113,25 +123,25 @@ async function notifyAdminNewUser(newUser) {
               <tbody>
                 <tr style="border-bottom: 1px solid #f1f5f9;">
                   <td style="padding: 10px 0; font-weight: 600; color: #64748b; width: 140px;">Full Name:</td>
-                  <td style="padding: 10px 0; font-weight: bold; color: #0f172a;">${newUser.full_name || 'N/A'}</td>
+                  <td style="padding: 10px 0; font-weight: bold; color: #0f172a;">${escapeHtml(newUser.full_name || 'N/A')}</td>
                 </tr>
                 <tr style="border-bottom: 1px solid #f1f5f9;">
                   <td style="padding: 10px 0; font-weight: 600; color: #64748b;">Email Address:</td>
                   <td style="padding: 10px 0; font-weight: bold; color: #0f172a;">
-                    <a href="mailto:${newUser.email}" style="color: #059669; text-decoration: none;">${newUser.email}</a>
+                    <a href="mailto:${escapeHtml(newUser.email)}" style="color: #059669; text-decoration: none;">${escapeHtml(newUser.email)}</a>
                   </td>
                 </tr>
                 <tr style="border-bottom: 1px solid #f1f5f9;">
                   <td style="padding: 10px 0; font-weight: 600; color: #64748b;">Department:</td>
-                  <td style="padding: 10px 0; color: #0f172a;">${newUser.department || 'General'}</td>
+                  <td style="padding: 10px 0; color: #0f172a;">${escapeHtml(newUser.department || 'General')}</td>
                 </tr>
                 <tr style="border-bottom: 1px solid #f1f5f9;">
                   <td style="padding: 10px 0; font-weight: 600; color: #64748b;">Designation:</td>
-                  <td style="padding: 10px 0; color: #0f172a;">${newUser.designation || 'Team Member'}</td>
+                  <td style="padding: 10px 0; color: #0f172a;">${escapeHtml(newUser.designation || 'Team Member')}</td>
                 </tr>
                 <tr style="border-bottom: 1px solid #f1f5f9;">
                   <td style="padding: 10px 0; font-weight: 600; color: #64748b;">Auth Method:</td>
-                  <td style="padding: 10px 0; color: #0f172a; text-transform: capitalize;">${newUser.auth_provider || 'Password'}</td>
+                  <td style="padding: 10px 0; color: #0f172a; text-transform: capitalize;">${escapeHtml(newUser.auth_provider || 'Password')}</td>
                 </tr>
                 <tr>
                   <td style="padding: 10px 0; font-weight: 600; color: #64748b;">Registration Time:</td>

@@ -29,6 +29,7 @@ import {
   EyeOff
 } from 'lucide-react';
 import { marked } from 'marked';
+import DOMPurify from 'dompurify';
 import { api } from '../services/api';
 
 export default function ProjectOverviewModal({ project, onClose, onEdit, currentUser }) {
@@ -74,7 +75,7 @@ export default function ProjectOverviewModal({ project, onClose, onEdit, current
 
   const p = projectDetails || project;
   const pdfUrl = api.getProjectPdfUrl(p.id, selectedPdfFile);
-  const renderedHtml = currentMarkdown ? marked.parse(currentMarkdown) : null;
+  const renderedHtml = currentMarkdown ? DOMPurify.sanitize(marked.parse(currentMarkdown)) : null;
   const canViewInfrastructure = !currentUser || currentUser.role === 'admin' || currentUser.role === 'manager';
   const [showHostingSecrets, setShowHostingSecrets] = useState(false);
 

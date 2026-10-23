@@ -458,6 +458,18 @@ export const api = {
   },
 
   // Tasks
+  async getTasks(filters = {}) {
+    const params = new URLSearchParams();
+    if (filters.project_id) params.append('project_id', filters.project_id);
+    if (filters.status) params.append('status', filters.status);
+    if (filters.priority) params.append('priority', filters.priority);
+    if (filters.user_id) params.append('user_id', filters.user_id);
+    const qs = params.toString() ? `?${params.toString()}` : '';
+    const res = await authFetch(`${API_BASE}/tasks${qs}`);
+    if (!res.ok) throw new Error('Failed to fetch tasks');
+    return res.json();
+  },
+
   async createTask(taskData) {
     const res = await authFetch(`${API_BASE}/tasks`, {
       method: 'POST',
@@ -612,6 +624,17 @@ export const api = {
     });
     const json = await res.json();
     if (!res.ok) throw new Error(json.error || 'Failed to delete video');
+    return json;
+  },
+
+  async recordVideoWatch(videoId, userId) {
+    const res = await authFetch(`${API_BASE}/videos/${videoId}/watch`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: userId })
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || 'Failed to record video watch');
     return json;
   },
 

@@ -24,6 +24,7 @@ import {
   Megaphone,
   Video,
   DollarSign,
+  CheckSquare,
   X
 } from 'lucide-react';
 import { useLanguage } from '../LanguageContext';
@@ -130,6 +131,24 @@ export default function Sidebar({
             >
               <LayoutDashboard className={`w-4 h-4 ${(activeTab === 'dashboard' || activeTab === 'overview') ? 'text-emerald-600' : 'text-slate-400'}`} />
               <span>{isManagement ? (isAdmin ? t('sidebar.adminOverview') : 'Management Overview') : (t('sidebar.myOverview') || 'My Overview')}</span>
+            </button>
+
+            {/* Task Menu (All Tasks for Admin / My Tasks for Member) */}
+            <button
+              onClick={() => handleNav(() => setActiveTab('tasks'))}
+              className={`w-full flex items-center justify-between px-3 py-2 text-sm font-medium rounded-lg transition-all cursor-pointer ${
+                activeTab === 'tasks'
+                  ? 'bg-emerald-50 text-emerald-700 shadow-sm shadow-emerald-600/5 font-semibold'
+                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <CheckSquare className={`w-4 h-4 ${activeTab === 'tasks' ? 'text-emerald-600' : 'text-slate-400'}`} />
+                <span>{t('sidebar.tasks') || 'Task'}</span>
+              </div>
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800">
+                All
+              </span>
             </button>
 
             {/* Onboarding Panel */}
