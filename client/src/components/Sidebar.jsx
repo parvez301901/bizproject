@@ -542,8 +542,9 @@ export default function Sidebar({
               title="Go to My Overview"
             >
               <img
-                src={currentUser.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(currentUser.full_name)}`}
+                src={currentUser.avatar_url && !currentUser.avatar_url.includes('dicebear.com') ? currentUser.avatar_url : '/default-avatar.png'}
                 alt={currentUser.full_name}
+                onError={(e) => { e.currentTarget.src = '/default-avatar.png'; }}
                 className="w-8 h-8 rounded-full ring-2 ring-emerald-400/30 group-hover:ring-emerald-500/60 object-cover transition-all"
               />
               <div className="min-w-0">
