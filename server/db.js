@@ -207,6 +207,8 @@ function setupSQLiteSchema() {
   try { sqliteDb.exec("ALTER TABLE common_onboarding_tasks ADD COLUMN task_type TEXT DEFAULT 'standard'"); } catch(e) {}
   try { sqliteDb.exec("ALTER TABLE common_onboarding_tasks ADD COLUMN form_schema TEXT"); } catch(e) {}
   try { sqliteDb.exec("ALTER TABLE users ADD COLUMN name_reward_claimed INTEGER DEFAULT 0"); } catch(e) {}
+  try { sqliteDb.exec("ALTER TABLE users ADD COLUMN email_verified INTEGER DEFAULT 1"); } catch(e) {}
+  try { sqliteDb.exec("ALTER TABLE users ADD COLUMN email_verify_token TEXT"); } catch(e) {}
   try { sqliteDb.exec("ALTER TABLE instruction_videos ADD COLUMN xp_reward INTEGER DEFAULT 25"); } catch(e) {}
 
   sqliteDb.exec(`
@@ -549,6 +551,8 @@ async function setupPostgresSchema() {
       "ALTER TABLE common_onboarding_tasks ADD COLUMN IF NOT EXISTS task_type VARCHAR(32) DEFAULT 'standard'",
       "ALTER TABLE common_onboarding_tasks ADD COLUMN IF NOT EXISTS form_schema TEXT",
       "ALTER TABLE users ADD COLUMN IF NOT EXISTS name_reward_claimed INTEGER DEFAULT 0",
+      "ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified INTEGER DEFAULT 1",
+      "ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verify_token VARCHAR(255)",
       "ALTER TABLE instruction_videos ADD COLUMN IF NOT EXISTS xp_reward INTEGER DEFAULT 25"
     ];
 

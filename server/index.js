@@ -18,8 +18,9 @@ const {
   getAppDateString,
   getAppDateTimeString 
 } = require('./db');
+const crypto = require('crypto');
 const { seedData } = require('./seed');
-const { notifyAdminNewUser, isMailConfigured, ADMIN_EMAIL } = require('./email');
+const { notifyAdminNewUser, sendUserConfirmationEmail, isMailConfigured, ADMIN_EMAIL } = require('./email');
 require('dotenv').config();
 
 const app = express();
@@ -413,17 +414,15 @@ app.post('/api/auth/register', authLimiter, async (req, res) => {
     const userId = 'usr_' + uuidv4().substring(0, 8);
     const avatarUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(full_name)}`;
     const joinDate = new Date().toISOString().split('T')[0];
+    const verifyToken = crypto.randomBytes(24).toString('hex');
 
     await query(`
-      INSERT INTO users (id, email, password_hash, full_name, avatar_url, role, department, designation, auth_provider, join_date, status, onboarding_progress)
-      VALUES (?, ?, ?, ?, ?, 'team', ?, ?, 'local', ?, 'active', 0)
-    `, [userId, email.toLowerCase().trim(), password_hash, full_name, avatarUrl, department, designation, joinDate]);
+      INSERT INTO users (id, email, password_hash, full_name, avatar_url, role, department, designation, auth_provider, join_date, status, onboarding_progress, email_verified, email_verify_token)
+      VALUES (?, ?, ?, ?, ?, 'team', ?, ?, 'local', ?, 'active', 0, 0, ?)
+    `, [userId, email.toLowerCase().trim(), password_hash, full_name, avatarUrl, department, designation, joinDate, verifyToken]);
 
     // Automatically clone the common onboarding tasks for any new user
     await assignCommonOnboardingTasksToUser(userId);
-
-    // Create token
-    const token = jwt.sign({ id: userId, email: email.toLowerCase().trim(), role: 'team' }, JWT_SECRET, { expiresIn: '7d' });
 
     // Universal Audit Log
     await logActivity({
@@ -432,8 +431,16 @@ app.post('/api/auth/register', authLimiter, async (req, res) => {
       user_id: userId,
       user_name: full_name,
       action: 'USER_REGISTER',
-      details: `New account registered with email (${email})`
+      details: `New account registered with email (${email}) - verification pending`
     });
+
+    // Send confirmation email to the user (non-blocking)
+    sendUserConfirmationEmail({
+      id: userId,
+      full_name,
+      email: email.toLowerCase().trim(),
+      verifyToken
+    }).catch(e => console.error('[Email] User confirmation email dispatch error:', e.message));
 
     // Notify Admin via email (non-blocking)
     notifyAdminNewUser({
@@ -445,8 +452,106 @@ app.post('/api/auth/register', authLimiter, async (req, res) => {
       auth_provider: 'Password / Local'
     }).catch(e => console.error('[Email] Background admin notification error:', e.message));
 
-    const user = await getOne('SELECT id, email, full_name, avatar_url, role, department, designation, auth_provider, status, xp, level FROM users WHERE id = ?', [userId]);
-    res.status(201).json({ token, user });
+    res.status(201).json({
+      success: true,
+      requiresVerification: true,
+      message: `Registration successful! We have sent a confirmation link to ${email}. Please check your inbox and verify your email to log in.`
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Verify email confirmation endpoint
+app.post('/api/auth/verify-email', authLimiter, async (req, res) => {
+  try {
+    const { token, email } = req.body;
+    if (!token) {
+      return res.status(400).json({ error: 'Verification token is required' });
+    }
+
+    let user;
+    if (email) {
+      user = await getOne('SELECT * FROM users WHERE LOWER(TRIM(email)) = ? AND email_verify_token = ?', [email.toLowerCase().trim(), token]);
+    } else {
+      user = await getOne('SELECT * FROM users WHERE email_verify_token = ?', [token]);
+    }
+
+    if (!user) {
+      return res.status(400).json({ error: 'Invalid or expired confirmation link. If you already verified, please log in.' });
+    }
+
+    await query('UPDATE users SET email_verified = 1, email_verify_token = NULL WHERE id = ?', [user.id]);
+
+    await logActivity({
+      entity_type: 'auth',
+      entity_id: user.id,
+      user_id: user.id,
+      user_name: user.full_name,
+      action: 'EMAIL_VERIFIED',
+      details: `Email address verified successfully for (${user.email})`
+    });
+
+    const authToken = jwt.sign({ id: user.id, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
+    const safeUser = {
+      id: user.id,
+      email: user.email,
+      full_name: user.full_name,
+      avatar_url: user.avatar_url,
+      role: user.role,
+      department: user.department,
+      designation: user.designation,
+      auth_provider: user.auth_provider || 'local',
+      status: user.status,
+      xp: user.xp || 0,
+      level: user.level || 1
+    };
+
+    res.json({
+      success: true,
+      message: 'Your email has been confirmed successfully! Welcome to BizProject.',
+      token: authToken,
+      user: safeUser
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Resend email confirmation endpoint
+app.post('/api/auth/resend-confirmation', authLimiter, async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+
+    const user = await getOne('SELECT * FROM users WHERE LOWER(TRIM(email)) = ?', [email.toLowerCase().trim()]);
+    if (!user) {
+      return res.status(404).json({ error: 'No account found with that email address' });
+    }
+
+    if (user.email_verified === 1) {
+      return res.status(400).json({ error: 'This email is already verified. You can log in directly.' });
+    }
+
+    let verifyToken = user.email_verify_token;
+    if (!verifyToken) {
+      verifyToken = crypto.randomBytes(24).toString('hex');
+      await query('UPDATE users SET email_verify_token = ? WHERE id = ?', [verifyToken, user.id]);
+    }
+
+    await sendUserConfirmationEmail({
+      id: user.id,
+      full_name: user.full_name,
+      email: user.email,
+      verifyToken
+    });
+
+    res.json({
+      success: true,
+      message: `Confirmation email re-sent to ${user.email}. Please check your inbox and spam folder.`
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -477,6 +582,14 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
     const match = await bcrypt.compare(password, user.password_hash);
     if (!match) {
       return res.status(401).json({ error: 'Invalid email or password' });
+    }
+
+    if (user.email_verified === 0) {
+      return res.status(403).json({
+        error: 'Please confirm your email address before logging in. Check your inbox for the confirmation link.',
+        requiresVerification: true,
+        email: user.email
+      });
     }
 
     const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: '7d' });

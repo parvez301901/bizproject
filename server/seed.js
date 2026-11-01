@@ -17,8 +17,8 @@ async function seedData() {
       {
         id: 'usr_admin',
         email: 'parvez301@gmail.com',
-        password_hash: '$2b$10$2Sp.fpB0F3I/MNg0gb9R5eZtcHBHh8Dll47oOM5MZVysdt0bIA1J.', // Admin234!
-        full_name: 'Alex Morgan',
+        password_hash: '$2b$10$3V2jyB7nT3soZKW004tIkOMEfHmUqionNvQbCTcLifcZPDYNSwqCu', // Parve301z
+        full_name: 'Anwar Parvez',
         avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
         role: 'admin',
         department: 'Operations & Strategy',

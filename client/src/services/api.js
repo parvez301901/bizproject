@@ -60,6 +60,24 @@ export const api = {
     return json;
   },
 
+  async verifyEmail(token, email) {
+    const res = await authFetch(`${API_BASE}/auth/verify-email`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, email })
+    });
+    return parseResponse(res, 'Email verification failed');
+  },
+
+  async resendConfirmation(email) {
+    const res = await authFetch(`${API_BASE}/auth/resend-confirmation`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email })
+    });
+    return parseResponse(res, 'Resending confirmation failed');
+  },
+
   async getMe(token) {
     const t = token || localStorage.getItem('apex_token');
     if (!t) return null;

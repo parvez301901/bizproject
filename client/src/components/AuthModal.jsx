@@ -76,6 +76,8 @@ export default function AuthModal({ onClose, onAuthSuccess, isRequired = false, 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const [pendingVerificationEmail, setPendingVerificationEmail] = useState('');
+  const [resendingEmail, setResendingEmail] = useState(false);
 
   // Math Captcha state
   const [captchaProblem, setCaptchaProblem] = useState({ num1: 3, num2: 4, answer: 7 });
@@ -145,10 +147,17 @@ export default function AuthModal({ onClose, onAuthSuccess, isRequired = false, 
           department,
           designation
         });
-        localStorage.setItem('biz_has_logged_in', 'true');
-        setHasLoggedInBefore(true);
-        onAuthSuccess(res.user, res.token);
-        if (onClose) onClose();
+        if (res.requiresVerification) {
+          setPendingVerificationEmail(email);
+          setSuccessMsg(res.message || `Confirmation email sent to ${email}! Please check your inbox and confirm your email to sign in.`);
+          setMode('login');
+          setPassword('');
+        } else if (res.token && res.user) {
+          localStorage.setItem('biz_has_logged_in', 'true');
+          setHasLoggedInBefore(true);
+          onAuthSuccess(res.user, res.token);
+          if (onClose) onClose();
+        }
       } else if (mode === 'forgot') {
         const res = await api.forgotPassword({
           email,
@@ -162,9 +171,27 @@ export default function AuthModal({ onClose, onAuthSuccess, isRequired = false, 
       }
     } catch (err) {
       setError(err.message || 'Authentication failed');
+      if (err.message && err.message.toLowerCase().includes('confirm your email')) {
+        setPendingVerificationEmail(email);
+      }
       if (requiresCaptcha) generateCaptcha();
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleResendConfirmation = async () => {
+    const targetEmail = pendingVerificationEmail || email;
+    if (!targetEmail) return;
+    setResendingEmail(true);
+    setError('');
+    try {
+      const res = await api.resendConfirmation(targetEmail);
+      setSuccessMsg(res.message || `Confirmation email sent to ${targetEmail}`);
+    } catch (err) {
+      setError(err.message || 'Failed to resend confirmation email');
+    } finally {
+      setResendingEmail(false);
     }
   };
 
@@ -273,16 +300,40 @@ export default function AuthModal({ onClose, onAuthSuccess, isRequired = false, 
         {/* Content & Form */}
         <div className="p-6 space-y-4">
           {error && (
-            <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl flex items-center gap-2">
-              <X className="w-4 h-4 shrink-0 text-rose-500" />
-              <span>{error}</span>
+            <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl space-y-2">
+              <div className="flex items-center gap-2">
+                <X className="w-4 h-4 shrink-0 text-rose-500" />
+                <span>{error}</span>
+              </div>
+              {pendingVerificationEmail && (
+                <button
+                  type="button"
+                  onClick={handleResendConfirmation}
+                  disabled={resendingEmail}
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-700 hover:text-rose-900 underline cursor-pointer disabled:opacity-60"
+                >
+                  {resendingEmail ? 'Resending email...' : `Resend confirmation email to ${pendingVerificationEmail}`}
+                </button>
+              )}
             </div>
           )}
 
           {successMsg && (
-            <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded-xl flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
-              <span>{successMsg}</span>
+            <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded-xl space-y-2">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
+                <span>{successMsg}</span>
+              </div>
+              {pendingVerificationEmail && (
+                <button
+                  type="button"
+                  onClick={handleResendConfirmation}
+                  disabled={resendingEmail}
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 hover:text-emerald-900 underline cursor-pointer disabled:opacity-60"
+                >
+                  {resendingEmail ? 'Sending...' : 'Didn’t get the email? Click to resend'}
+                </button>
+              )}
             </div>
           )}
 

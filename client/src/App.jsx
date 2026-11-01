@@ -84,9 +84,31 @@ export default function App() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Validate session on mount
+  // Validate session and check email verification link on mount
   useEffect(() => {
-    const verifySession = async () => {
+    const checkEmailVerification = async () => {
+      const params = new URLSearchParams(window.location.search);
+      const verifyToken = params.get('verify_token');
+      const verifyEmail = params.get('email');
+
+      if (verifyToken) {
+        try {
+          const res = await api.verifyEmail(verifyToken, verifyEmail);
+          if (res && res.token && res.user) {
+            localStorage.setItem('apex_token', res.token);
+            localStorage.setItem('apex_user', JSON.stringify(res.user));
+            setCurrentUser(res.user);
+            // Clean URL query parameters
+            window.history.replaceState({}, document.title, window.location.pathname);
+            alert(res.message || 'Email confirmed successfully! Welcome to BizProject.');
+            return;
+          }
+        } catch (err) {
+          alert(err.message || 'Failed to verify email');
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }
+      }
+
       const token = localStorage.getItem('apex_token');
       if (!token) {
         setCurrentUser(null);
@@ -104,7 +126,7 @@ export default function App() {
         console.warn('Session verification error:', e);
       }
     };
-    verifySession();
+    checkEmailVerification();
   }, []);
 
   // Data states
