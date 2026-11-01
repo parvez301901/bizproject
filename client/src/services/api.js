@@ -709,6 +709,21 @@ export const api = {
     return json;
   },
 
+  // Terms & Conditions APIs
+  async getTermsAndConditions() {
+    const res = await authFetch(`${API_BASE}/terms-and-conditions`);
+    return parseResponse(res, 'Failed to fetch terms and conditions');
+  },
+
+  async updateTermsAndConditions(content) {
+    const res = await authFetch(`${API_BASE}/terms-and-conditions`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content })
+    });
+    return parseResponse(res, 'Failed to update terms and conditions');
+  },
+
   // Database Backup Export API
   async downloadDatabaseBackup() {
     const res = await authFetch(`${API_BASE}/admin/database/backup`);

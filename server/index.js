@@ -1362,6 +1362,73 @@ app.put('/api/admin/settings', requireAuth, requireRole(['admin']), async (req, 
   }
 });
 
+// Terms & Conditions Endpoints (Public read, Admin edit)
+app.get('/api/terms-and-conditions', async (req, res) => {
+  try {
+    const defaultTerms = `<h2>Standard Workspace Terms & Conditions</h2>
+<p>Welcome to <strong>BizProject Enterprise Workspace</strong>. By accessing or participating in this platform, all team members, contractors, and administrators agree to adhere strictly to the following terms and operational standards.</p>
+
+<h3>1. Confidentiality & Non-Disclosure</h3>
+<p>All internal project files, source code repositories, databases, client deliverables, financial incentives, and proprietary documentation accessible via this workspace are confidential. Unauthorized distribution, copying, or forwarding of internal resources to outside parties is strictly prohibited.</p>
+
+<h3>2. Code of Professional Conduct</h3>
+<p>All members are expected to conduct tasks diligently, log truthful work logs, and cooperate in an atmosphere of respect, accountability, and excellence.</p>
+
+<h3>3. Security & Access Control</h3>
+<p>Account credentials and session tokens must never be shared. Any suspicious activity, leaked credentials, or security incidents must be immediately escalated to administrators.</p>
+
+<h3>4. Document Integrity & Watermarking</h3>
+<p>Exported documents and user guides carry digital forensic watermarks identifying the requester's authorized credentials to protect company intellectual property.</p>
+
+<p><em>Last updated by Workspace Administration.</em></p>`;
+
+    const content = await getSystemSetting('terms_and_conditions_html', defaultTerms);
+    const updatedAt = await getSystemSetting('terms_and_conditions_updated_at', new Date().toISOString());
+    const updatedBy = await getSystemSetting('terms_and_conditions_updated_by', 'Workspace Administrator');
+
+    res.json({
+      content,
+      updated_at: updatedAt,
+      updated_by: updatedBy
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/terms-and-conditions', requireAuth, requireRole(['admin']), async (req, res) => {
+  try {
+    const { content } = req.body;
+    if (typeof content !== 'string') {
+      return res.status(400).json({ error: 'Content must be an HTML string.' });
+    }
+
+    const now = new Date().toISOString();
+    const actor = req.user?.full_name || req.user?.email || 'Admin';
+
+    await setSystemSetting('terms_and_conditions_html', content);
+    await setSystemSetting('terms_and_conditions_updated_at', now);
+    await setSystemSetting('terms_and_conditions_updated_by', actor);
+
+    await logActivity({
+      entity_type: 'legal',
+      entity_id: 'terms_and_conditions',
+      user_name: actor,
+      action: 'TERMS_AND_CONDITIONS_UPDATED',
+      details: 'Updated workspace terms & conditions agreement'
+    });
+
+    res.json({
+      success: true,
+      content,
+      updated_at: now,
+      updated_by: actor
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Database Backup Download Endpoint (Admin & Manager only)
 app.get('/api/admin/database/backup', requireAuth, requireRole(['admin', 'manager']), async (req, res) => {
   try {

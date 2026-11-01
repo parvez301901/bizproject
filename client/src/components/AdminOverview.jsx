@@ -17,9 +17,11 @@ import {
   ChevronRight,
   Bell,
   Settings,
-  DollarSign
+  DollarSign,
+  FileText
 } from 'lucide-react';
 import LeaderboardView from './LeaderboardView';
+import TermsAndConditionsModal from './TermsAndConditionsModal';
 
 export default function AdminOverview({ 
   stats, 
@@ -35,6 +37,7 @@ export default function AdminOverview({
   onOpenSettings
 }) {
   const [activeSubView, setActiveSubView] = useState('overview'); // 'overview' | 'leaderboard'
+  const [showTermsModal, setShowTermsModal] = useState(false);
 
   if (loading || !stats) {
     return (
@@ -237,6 +240,15 @@ export default function AdminOverview({
               <span>Settings</span>
             </button>
           )}
+
+          <button
+            onClick={() => setShowTermsModal(true)}
+            className="px-4 py-2.5 bg-white hover:bg-emerald-50 text-emerald-800 hover:text-emerald-900 text-xs font-bold rounded-xl border border-emerald-200/80 shadow-2xs transition-all cursor-pointer flex items-center gap-2"
+            title="View workspace terms & conditions agreement and compliance policies"
+          >
+            <FileText className="w-4 h-4 text-emerald-600" />
+            <span>Terms & Conditions</span>
+          </button>
         </div>
       </div>
 
@@ -488,6 +500,13 @@ export default function AdminOverview({
           </div>
         </div>
       </div>
+
+      {/* Terms and Conditions Modal */}
+      <TermsAndConditionsModal
+        isOpen={showTermsModal}
+        onClose={() => setShowTermsModal(false)}
+        currentUser={currentUser}
+      />
     </div>
   );
 }

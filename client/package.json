@@ -12,6 +12,7 @@
   "dependencies": {
     "@tailwindcss/vite": "^4.3.3",
     "dompurify": "^3.4.17",
+    "jspdf": "^4.2.1",
     "lucide-react": "^1.47.0",
     "marked": "^18.0.14",
     "react": "^19.2.8",
