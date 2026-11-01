@@ -138,15 +138,6 @@ export default function OnboardingHub({ users = [], onRefresh, onOpenOnboardModa
     ).slice(0, 8);
   }, [newCommonTitle, allSuggestedTasks]);
 
-  // Autocomplete matches for Individual Candidate Task input (triggers at >= 3 letters)
-  const individualTaskSuggestions = React.useMemo(() => {
-    if (!newTitle || newTitle.trim().length < 3) return [];
-    const q = newTitle.trim().toLowerCase();
-    return allSuggestedTasks.filter(item => 
-      item.title.toLowerCase().includes(q)
-    ).slice(0, 8);
-  }, [newTitle, allSuggestedTasks]);
-
   // Team Member Wizard State
   const [wizardStep, setWizardStep] = useState(1);
   const [insertedName, setInsertedName] = useState(currentUser?.full_name || '');
@@ -521,6 +512,15 @@ export default function OnboardingHub({ users = [], onRefresh, onOpenOnboardModa
   const [newXpReward, setNewXpReward] = useState(35);
   const [newCustomSchema, setNewCustomSchema] = useState(null);
   const [addingTask, setAddingTask] = useState(false);
+
+  // Autocomplete matches for Individual Candidate Task input (triggers at >= 3 letters)
+  const individualTaskSuggestions = React.useMemo(() => {
+    if (!newTitle || newTitle.trim().length < 3) return [];
+    const q = newTitle.trim().toLowerCase();
+    return allSuggestedTasks.filter(item => 
+      item.title.toLowerCase().includes(q)
+    ).slice(0, 8);
+  }, [newTitle, allSuggestedTasks]);
 
   const handleAddNewTask = async (e) => {
     e.preventDefault();
