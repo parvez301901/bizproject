@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   X, 
   Plus, 
@@ -9,8 +9,12 @@ import {
   Sparkles, 
   Check, 
   AlertCircle,
-  ListTree
+  ListTree,
+  Search,
+  History,
+  ArrowRight
 } from 'lucide-react';
+import { api } from '../services/api';
 
 export default function CreateTaskModal({
   isOpen,
@@ -31,6 +35,31 @@ export default function CreateTaskModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // Search existing / previous tasks to duplicate / assign
+  const [searchQuery, setSearchQuery] = useState('');
+  const [allTasks, setAllTasks] = useState([]);
+  const [isSearchingTasks, setIsSearchingTasks] = useState(false);
+  const [showTaskPicker, setShowTaskPicker] = useState(false);
+  const [selectedPreviousTask, setSelectedPreviousTask] = useState(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      // Pre-fetch all previous tasks across projects for admin quick search
+      api.getTasks()
+        .then(data => {
+          setAllTasks(Array.isArray(data) ? data : []);
+        })
+        .catch(err => {
+          console.warn('Could not load all tasks for template search:', err);
+          setAllTasks(tasks || []);
+        });
+    } else {
+      setSearchQuery('');
+      setShowTaskPicker(false);
+      setSelectedPreviousTask(null);
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const toggleAssignee = (userId) => {
@@ -38,6 +67,30 @@ export default function CreateTaskModal({
       prev.includes(userId) ? prev.filter(id => id !== userId) : [...prev, userId]
     );
   };
+
+  const handleSelectPreviousTask = (prevTask) => {
+    setTitle(prevTask.title || '');
+    setDescription(prevTask.description || '');
+    setPriority(prevTask.priority || 'Medium');
+    setEstHours(prevTask.estimated_hours || 2);
+    setXpReward(prevTask.xp_reward || 50);
+    // Optionally pre-populate or let admin pick new assignees
+    if (prevTask.assignee_ids && Array.isArray(prevTask.assignee_ids) && prevTask.assignee_ids.length > 0) {
+      setAssignees(prevTask.assignee_ids);
+    }
+    setSelectedPreviousTask(prevTask);
+    setShowTaskPicker(false);
+  };
+
+  const filteredPreviousTasks = allTasks.filter(t => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      (t.title && t.title.toLowerCase().includes(q)) ||
+      (t.description && t.description.toLowerCase().includes(q)) ||
+      (t.project_name && t.project_name.toLowerCase().includes(q))
+    );
+  }).slice(0, 10); // limit to 10 for clean UI
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -98,6 +151,100 @@ export default function CreateTaskModal({
               <span>{error}</span>
             </div>
           )}
+
+          {/* Quick Select / Search Previous Tasks (Admin Task Assignment Feature) */}
+          <div className="bg-slate-50 border border-slate-200/90 rounded-2xl p-3.5 space-y-2.5">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                <History className="w-4 h-4 text-emerald-600" />
+                <span>Search & Reuse Previous Task</span>
+              </label>
+              <button
+                type="button"
+                onClick={() => setShowTaskPicker(!showTaskPicker)}
+                className="text-[11px] font-bold text-emerald-700 hover:text-emerald-800 underline cursor-pointer"
+              >
+                {showTaskPicker ? 'Close Search' : 'Browse Previous Tasks'}
+              </button>
+            </div>
+
+            {selectedPreviousTask && (
+              <div className="flex items-center justify-between p-2 rounded-xl bg-emerald-50 border border-emerald-200 text-xs">
+                <div className="truncate flex-1 min-w-0 pr-2">
+                  <span className="text-[10px] uppercase font-bold text-emerald-800 block">Loaded Previous Task:</span>
+                  <span className="font-semibold text-emerald-950 truncate block">{selectedPreviousTask.title}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedPreviousTask(null)}
+                  className="p-1 text-slate-400 hover:text-rose-600 rounded cursor-pointer"
+                  title="Clear selected task"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+
+            {showTaskPicker && (
+              <div className="space-y-2 pt-1 animate-fadeIn">
+                <div className="relative">
+                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Type keyword or project to search previous tasks..."
+                    className="w-full pl-8 pr-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-emerald-500 shadow-2xs"
+                  />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery('')}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+
+                <div className="max-h-48 overflow-y-auto space-y-1 rounded-xl bg-white border border-slate-200 p-1 divide-y divide-slate-100 shadow-xs">
+                  {filteredPreviousTasks.length === 0 ? (
+                    <div className="p-3 text-center text-xs text-slate-400">
+                      No previous tasks matching "{searchQuery}"
+                    </div>
+                  ) : (
+                    filteredPreviousTasks.map((t) => (
+                      <div
+                        key={t.id}
+                        onClick={() => handleSelectPreviousTask(t)}
+                        className="p-2 hover:bg-emerald-50/70 rounded-lg transition-all cursor-pointer flex items-center justify-between gap-2 group"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs font-semibold text-slate-800 group-hover:text-emerald-800 truncate">
+                              {t.title}
+                            </span>
+                            {t.project_name && (
+                              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-100 text-slate-600 shrink-0">
+                                {t.project_name}
+                              </span>
+                            )}
+                          </div>
+                          {t.description && (
+                            <p className="text-[11px] text-slate-400 truncate mt-0.5">{t.description}</p>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1 text-[11px] font-bold text-emerald-700 opacity-0 group-hover:opacity-100 shrink-0">
+                          <span>Select</span>
+                          <ArrowRight className="w-3 h-3" />
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* Title */}
           <div>

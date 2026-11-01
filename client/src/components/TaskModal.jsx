@@ -25,7 +25,9 @@ import {
   CheckSquare,
   Square,
   Loader2,
-  DollarSign
+  DollarSign,
+  ArrowRightLeft,
+  Share2
 } from 'lucide-react';
 import { api } from '../services/api';
 
@@ -47,6 +49,12 @@ export default function TaskModal({ task, users = [], currentUser, onClose, onUp
   const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
   const [newSubtaskAssignee, setNewSubtaskAssignee] = useState('');
   const [isAddingSubtask, setIsAddingSubtask] = useState(false);
+
+  // Pass / Reassign Task State
+  const [showPassModal, setShowPassModal] = useState(false);
+  const [passTargetUserId, setPassTargetUserId] = useState('');
+  const [passNote, setPassNote] = useState('');
+  const [passingTask, setPassingTask] = useState(false);
 
   // QC Screenshot & Problem Explanation State
   const [qcIssues, setQcIssues] = useState(task?.qc_issues || []);
@@ -278,6 +286,46 @@ export default function TaskModal({ task, users = [], currentUser, onClose, onUp
     handleSaveField('assignee_ids', updated);
   };
 
+  // Handler for Member to Pass/Reassign Task to Someone Else
+  const handlePassTask = async (e) => {
+    e.preventDefault();
+    if (!passTargetUserId) return;
+    try {
+      setPassingTask(true);
+      const targetUser = users.find(u => u.id === passTargetUserId);
+      const newAssigneeList = [passTargetUserId];
+      
+      // Update task assignees
+      await onUpdateTask(task.id, {
+        assignee_ids: newAssigneeList,
+        actor_name: currentUser?.full_name || 'Team Member'
+      });
+      setAssignees(newAssigneeList);
+
+      // Post audit comment explaining the pass
+      const passMessage = `🔄 Task passed from ${currentUser?.full_name || 'Member'} to ${targetUser?.full_name || 'Member'}${passNote.trim() ? `: "${passNote.trim()}"` : '.'}`;
+      try {
+        const addedComment = await api.addComment(task.id, {
+          user_id: currentUser?.id || 'usr_system',
+          content: passMessage,
+          actor_name: currentUser?.full_name || 'Team Member'
+        });
+        setComments(prev => [...prev, addedComment]);
+      } catch (commentErr) {
+        console.warn('Failed to post pass comment:', commentErr);
+      }
+
+      setShowPassModal(false);
+      setPassNote('');
+      setPassTargetUserId('');
+    } catch (err) {
+      console.error('Failed to pass task:', err);
+      alert('Failed to pass task: ' + err.message);
+    } finally {
+      setPassingTask(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
       <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-3xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden animate-scaleUp">
@@ -478,9 +526,20 @@ export default function TaskModal({ task, users = [], currentUser, onClose, onUp
             )}
           </div>
 
-          {/* Assignees Selection */}
+          {/* Assignees Selection & Pass Task to Colleague */}
           <div>
-            <label className="text-xs font-bold text-slate-800 block mb-2">Assign Team Members</label>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-xs font-bold text-slate-800">Assign Team Members</label>
+              <button
+                type="button"
+                onClick={() => setShowPassModal(true)}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition-all cursor-pointer shadow-2xs"
+                title="Pass or hand off this task to another team member"
+              >
+                <ArrowRightLeft className="w-3.5 h-3.5" />
+                <span>Pass / Hand off Task</span>
+              </button>
+            </div>
             <div className="flex flex-wrap gap-2">
               {users.map(u => {
                 const isSelected = assignees.includes(u.id);
@@ -993,6 +1052,90 @@ export default function TaskModal({ task, users = [], currentUser, onClose, onUp
               className="max-h-[85vh] max-w-full object-contain rounded-lg"
               onClick={(e) => e.stopPropagation()}
             />
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Pass / Reassign Task to Colleague */}
+      {showPassModal && (
+        <div 
+          className="fixed inset-0 z-60 bg-slate-900/60 flex items-center justify-center p-4 backdrop-blur-xs animate-fadeIn"
+          onClick={() => setShowPassModal(false)}
+        >
+          <div 
+            className="bg-white border border-slate-200 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-scaleUp"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-emerald-50 text-emerald-700">
+                  <ArrowRightLeft className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900">Pass / Hand Off Task</h3>
+                  <p className="text-[11px] text-slate-500">Assign this task to another team member</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowPassModal(false)}
+                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handlePassTask} className="space-y-3.5">
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">
+                  Select Team Member to Pass To *
+                </label>
+                <select
+                  required
+                  value={passTargetUserId}
+                  onChange={(e) => setPassTargetUserId(e.target.value)}
+                  className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-800 focus:outline-emerald-500 focus:bg-white cursor-pointer"
+                >
+                  <option value="">-- Choose Member --</option>
+                  {users.filter(u => u.id !== currentUser?.id).map(u => (
+                    <option key={u.id} value={u.id}>
+                      {u.full_name} ({u.designation || u.role})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">
+                  Hand-off Note / Reason (Optional)
+                </label>
+                <textarea
+                  rows={2}
+                  value={passNote}
+                  onChange={(e) => setPassNote(e.target.value)}
+                  placeholder="Explain why you're passing this task or provide context..."
+                  className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-800 focus:outline-emerald-500 focus:bg-white resize-none"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowPassModal(false)}
+                  className="px-3.5 py-2 text-xs font-semibold rounded-xl text-slate-600 hover:bg-slate-100 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={!passTargetUserId || passingTask}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white text-xs font-bold rounded-xl shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
+                >
+                  <ArrowRightLeft className="w-3.5 h-3.5" />
+                  <span>{passingTask ? 'Passing...' : 'Confirm Hand-off'}</span>
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
