@@ -397,8 +397,12 @@ app.post('/api/auth/register', authLimiter, async (req, res) => {
       return res.status(400).json({ error: 'Please provide a valid email address' });
     }
 
-    if (password.length < 6 || password.length > 128) {
-      return res.status(400).json({ error: 'Password must be between 6 and 128 characters' });
+    if (password.length < 8 || password.length > 128) {
+      return res.status(400).json({ error: 'Password must be between 8 and 128 characters' });
+    }
+
+    if (!/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password) || !/[^A-Za-z0-9]/.test(password)) {
+      return res.status(400).json({ error: 'Password must include at least one uppercase letter, one lowercase letter, one number, and one special character' });
     }
 
     if (full_name.length > 100) {

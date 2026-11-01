@@ -87,6 +87,16 @@ export default function AuthModal({ onClose, onAuthSuccess, isRequired = false, 
     return localStorage.getItem('biz_has_logged_in') === 'true';
   });
 
+  // Password security validation rules
+  const passwordRules = {
+    length: password.length >= 8,
+    lower: /[a-z]/.test(password),
+    special: /[^A-Za-z0-9]/.test(password),
+    upper: /[A-Z]/.test(password),
+    number: /[0-9]/.test(password),
+  };
+  const isPasswordValid = Object.values(passwordRules).every(Boolean);
+
   const generateCaptcha = () => {
     const n1 = Math.floor(Math.random() * 8) + 2;
     const n2 = Math.floor(Math.random() * 8) + 1;
@@ -114,8 +124,8 @@ export default function AuthModal({ onClose, onAuthSuccess, isRequired = false, 
       }
     }
 
-    if (mode === 'register' && password.length < 6) {
-      setError('Password must be at least 6 characters long');
+    if (mode === 'register' && !isPasswordValid) {
+      setError('Password must meet all security requirements shown below.');
       return;
     }
 
@@ -394,7 +404,7 @@ export default function AuthModal({ onClose, onAuthSuccess, isRequired = false, 
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder={mode === 'register' ? 'Minimum 6 characters' : '••••••••'}
+                    placeholder={mode === 'register' ? 'At least 8 characters' : '••••••••'}
                     className="w-full pl-9 pr-10 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:bg-white"
                   />
                   <button
@@ -406,6 +416,37 @@ export default function AuthModal({ onClose, onAuthSuccess, isRequired = false, 
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
+
+                {mode === 'register' && (
+                  <div className="mt-2.5 p-3 bg-slate-900 border border-slate-800 rounded-xl text-xs select-none shadow-inner">
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                      <div className="space-y-2">
+                        <div className={`flex items-center gap-2 transition-colors ${passwordRules.length ? 'text-emerald-400' : 'text-slate-400'}`}>
+                          <span className="font-bold text-xs leading-none w-3 text-center">{passwordRules.length ? '✓' : '✕'}</span>
+                          <span className="text-[11px]">At least 8 characters</span>
+                        </div>
+                        <div className={`flex items-center gap-2 transition-colors ${passwordRules.lower ? 'text-emerald-400' : 'text-slate-400'}`}>
+                          <span className="font-bold text-xs leading-none w-3 text-center">{passwordRules.lower ? '✓' : '✕'}</span>
+                          <span className="text-[11px]">One lowercase letter</span>
+                        </div>
+                        <div className={`flex items-center gap-2 transition-colors ${passwordRules.special ? 'text-emerald-400' : 'text-slate-400'}`}>
+                          <span className="font-bold text-xs leading-none w-3 text-center">{passwordRules.special ? '✓' : '✕'}</span>
+                          <span className="text-[11px]">One special character</span>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <div className={`flex items-center gap-2 transition-colors ${passwordRules.upper ? 'text-emerald-400' : 'text-slate-400'}`}>
+                          <span className="font-bold text-xs leading-none w-3 text-center">{passwordRules.upper ? '✓' : '✕'}</span>
+                          <span className="text-[11px]">One uppercase letter</span>
+                        </div>
+                        <div className={`flex items-center gap-2 transition-colors ${passwordRules.number ? 'text-emerald-400' : 'text-slate-400'}`}>
+                          <span className="font-bold text-xs leading-none w-3 text-center">{passwordRules.number ? '✓' : '✕'}</span>
+                          <span className="text-[11px]">One number</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
