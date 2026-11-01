@@ -1121,9 +1121,10 @@ export default function OnboardingHub({ users = [], onRefresh, onOpenOnboardModa
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <img
-                          src={user.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.full_name}`}
+                          src={user.avatar_url && !user.avatar_url.includes('dicebear.com') && !user.avatar_url.includes('ui-avatars.com') ? user.avatar_url : '/default-avatar.png'}
+                          onError={(e) => { e.currentTarget.src = '/default-avatar.png'; }}
                           alt={user.full_name}
-                          className="w-10 h-10 rounded-full border border-slate-200 object-cover"
+                          className="w-10 h-10 rounded-full border border-slate-200 object-cover bg-slate-50"
                         />
                         <div>
                           <h3 className="text-sm font-semibold text-slate-800 leading-snug">{user.full_name}</h3>
@@ -1169,9 +1170,10 @@ export default function OnboardingHub({ users = [], onRefresh, onOpenOnboardModa
                 <div className="flex items-center gap-4">
                   <div className="relative group shrink-0">
                     <img
-                      src={selectedUser.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(selectedUser.full_name)}`}
+                      src={selectedUser.avatar_url && !selectedUser.avatar_url.includes('dicebear.com') && !selectedUser.avatar_url.includes('ui-avatars.com') ? selectedUser.avatar_url : '/default-avatar.png'}
+                      onError={(e) => { e.currentTarget.src = '/default-avatar.png'; }}
                       alt={selectedUser.full_name}
-                      className="w-16 h-16 rounded-2xl border-2 border-emerald-200 object-cover shadow-sm bg-emerald-50"
+                      className="w-16 h-16 rounded-2xl border-2 border-emerald-200 object-cover shadow-sm bg-slate-50"
                     />
                     {(selectedUser.id === currentUser?.id || isAdmin) && (
                       <button
