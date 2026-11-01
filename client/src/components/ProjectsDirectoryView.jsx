@@ -878,9 +878,9 @@ export default function ProjectsDirectoryView({
 
         {/* Right Side: Instant Progress & Issues Hub (4 cols) */}
         {showInspector && (
-          <div className="lg:col-span-4 space-y-5 animate-fadeIn">
+          <div className="lg:col-span-4 space-y-5 animate-fadeIn lg:sticky lg:top-4 lg:self-start">
           {activeProject ? (
-            <div className="bg-white border border-slate-200/90 rounded-2xl shadow-xs p-6 space-y-6">
+            <div className="bg-white border border-slate-200/90 rounded-2xl shadow-xs p-6 space-y-6 max-h-[calc(100vh-2rem)] overflow-y-auto">
               {/* Project Card Header */}
               <div className="flex items-start justify-between pb-5 border-b border-slate-100">
                 <div className="space-y-1">
