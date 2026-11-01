@@ -75,9 +75,10 @@ export default function MyOverviewView({
             {/* Member Avatar with Interactive Upload Trigger */}
             <div className="relative group shrink-0">
               <img 
-                src={currentUser.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(currentUser.full_name)}`}
+                src={currentUser.avatar_url && !currentUser.avatar_url.includes('dicebear.com') ? currentUser.avatar_url : '/default-avatar.png'}
                 alt={currentUser.full_name}
-                className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl ring-4 ring-white/30 object-cover shadow-lg bg-emerald-800 transition-transform group-hover:scale-102"
+                onError={(e) => { e.currentTarget.src = '/default-avatar.png'; }}
+                className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl ring-4 ring-white/30 object-cover shadow-lg bg-slate-100 transition-transform group-hover:scale-102"
               />
               {/* Overlay hover effect */}
               <button
