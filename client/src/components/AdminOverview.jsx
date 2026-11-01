@@ -382,9 +382,10 @@ export default function AdminOverview({
 
                   <div className="flex items-center gap-2.5 mb-3">
                     <img
-                      src={user.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.full_name)}&background=10b981&color=fff`}
+                      src={user.avatar_url && !user.avatar_url.includes('dicebear.com') && !user.avatar_url.includes('ui-avatars.com') ? user.avatar_url : '/default-avatar.png'}
                       alt={user.full_name}
-                      className="w-10 h-10 rounded-xl object-cover ring-2 ring-white shadow-xs"
+                      onError={(e) => { e.currentTarget.src = '/default-avatar.png'; }}
+                      className="w-10 h-10 rounded-xl object-cover ring-2 ring-white shadow-xs bg-slate-100"
                     />
                     <div className="min-w-0">
                       <div className="font-bold text-xs text-slate-900 truncate">{user.full_name}</div>
