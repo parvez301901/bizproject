@@ -292,9 +292,97 @@ async function sendUserConfirmationEmail(user) {
   }
 }
 
+/**
+ * Send a secure password reset link to user email
+ * @param {Object} user - Details of the user (email, full_name, resetToken)
+ */
+async function sendPasswordResetEmail(user) {
+  try {
+    const appUrl = (process.env.APP_URL || 'https://bizproject.biznessimpact.com').replace(/\/$/, '');
+    const resetLink = `${appUrl}/?reset_token=${encodeURIComponent(user.resetToken)}&email=${encodeURIComponent(user.email)}`;
+    const subject = `Reset Your BizProject Password`;
+    const textContent = `Hello ${user.full_name || 'Member'},\n\nA password reset request was made for your BizProject account. Please click the link below to set a new password:\n\n${resetLink}\n\nThis reset link is valid for 1 hour. If you did not request a password reset, you can safely ignore this message.\n\nWarm regards,\nBizProject Team`;
+
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; background-color: #f8fafc; padding: 24px; color: #1e293b;">
+        <div style="max-width: 560px; margin: 0 auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+          <div style="background: #0f172a; padding: 20px 24px; color: #ffffff;">
+            <h2 style="margin: 0; font-size: 18px; font-weight: 700; color: #10b981;">BizProject Workspace</h2>
+            <p style="margin: 4px 0 0 0; font-size: 13px; color: #94a3b8;">Password Reset Request</p>
+          </div>
+          
+          <div style="padding: 24px;">
+            <p style="font-size: 16px; font-weight: 600; color: #0f172a; margin-top: 0;">
+              Hello ${escapeHtml(user.full_name || 'there')},
+            </p>
+            <p style="font-size: 14px; line-height: 1.6; color: #475569;">
+              We received a request to reset your password for your <strong>BizProject</strong> account. Click the button below to set a new password:
+            </p>
+            
+            <div style="margin: 28px 0; text-align: center;">
+              <a href="${resetLink}" style="display: inline-block; background-color: #059669; color: #ffffff; font-weight: 600; font-size: 15px; padding: 13px 28px; border-radius: 8px; text-decoration: none; box-shadow: 0 2px 4px rgba(5, 150, 105, 0.25);">
+                Set New Password
+              </a>
+            </div>
+
+            <p style="font-size: 12px; line-height: 1.5; color: #64748b;">
+              <strong>Note:</strong> This link is valid for 1 hour. If you didn't ask to reset your password, no action is needed — your account remains completely secure.
+            </p>
+
+            <p style="font-size: 12px; line-height: 1.5; color: #94a3b8; margin-top: 20px;">
+              If the button doesn't work, copy and paste this link into your browser:<br/>
+              <a href="${resetLink}" style="color: #059669; word-break: break-all;">${resetLink}</a>
+            </p>
+          </div>
+          
+          <div style="background-color: #f8fafc; border-top: 1px solid #e2e8f0; padding: 16px 24px; font-size: 12px; color: #94a3b8; text-align: center;">
+            Sent by BizProject Security Team.
+          </div>
+        </div>
+      </div>
+    `;
+
+    if (process.env.RESEND_API_KEY) {
+      let resendFrom = process.env.RESEND_FROM || process.env.EMAIL_FROM;
+      if (!resendFrom || resendFrom.includes('@gmail.') || resendFrom.includes('@yahoo.') || resendFrom.includes('@hotmail.')) {
+        resendFrom = 'BizProject <onboarding@resend.dev>';
+      }
+      return await sendViaResend(process.env.RESEND_API_KEY, {
+        to: user.email,
+        from: resendFrom,
+        subject,
+        html: htmlContent,
+        text: textContent
+      });
+    }
+
+    const transporter = getTransporter();
+    if (!transporter) {
+      console.log(`[Email] Mailer not configured. Skipped reset password email for "${user.email}".`);
+      return { success: false, reason: 'unconfigured' };
+    }
+
+    const fromAddress = process.env.EMAIL_FROM || `"BizProject System" <${process.env.SMTP_USER}>`;
+    const info = await transporter.sendMail({
+      from: fromAddress,
+      to: user.email,
+      subject,
+      text: textContent,
+      html: htmlContent
+    });
+
+    console.log(`[Email] Password reset email sent to ${user.email} (Message ID: ${info.messageId})`);
+    return { success: true, messageId: info.messageId };
+  } catch (err) {
+    console.error(`[Email] Failed to send password reset email:`, err.message);
+    return { success: false, error: err.message };
+  }
+}
+
 module.exports = {
   isMailConfigured,
   notifyAdminNewUser,
   sendUserConfirmationEmail,
+  sendPasswordResetEmail,
   ADMIN_EMAIL
 };

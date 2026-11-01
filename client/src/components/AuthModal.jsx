@@ -63,9 +63,9 @@ function LinkedInIcon() {
   );
 }
 
-export default function AuthModal({ onClose, onAuthSuccess, isRequired = false, isPage = false }) {
-  const [mode, setMode] = useState('login'); // 'login', 'register', or 'forgot'
-  const [email, setEmail] = useState('');
+export default function AuthModal({ onClose, onAuthSuccess, isRequired = false, isPage = false, resetTokenData = null, onClearResetToken = null }) {
+  const [mode, setMode] = useState(() => resetTokenData?.token ? 'reset' : 'login'); // 'login', 'register', 'forgot', or 'reset'
+  const [email, setEmail] = useState(() => resetTokenData?.email || '');
   const [password, setPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -79,6 +79,13 @@ export default function AuthModal({ onClose, onAuthSuccess, isRequired = false, 
   const [pendingVerificationEmail, setPendingVerificationEmail] = useState('');
   const [resendingEmail, setResendingEmail] = useState(false);
 
+  useEffect(() => {
+    if (resetTokenData?.token) {
+      setMode('reset');
+      if (resetTokenData.email) setEmail(resetTokenData.email);
+    }
+  }, [resetTokenData]);
+
   // Math Captcha state
   const [captchaProblem, setCaptchaProblem] = useState({ num1: 3, num2: 4, answer: 7 });
   const [captchaInput, setCaptchaInput] = useState('');
@@ -87,13 +94,14 @@ export default function AuthModal({ onClose, onAuthSuccess, isRequired = false, 
     return localStorage.getItem('biz_has_logged_in') === 'true';
   });
 
-  // Password security validation rules
+  // Password security validation rules (active for registration and reset)
+  const evaluatedPassword = mode === 'reset' ? newPassword : password;
   const passwordRules = {
-    length: password.length >= 8,
-    lower: /[a-z]/.test(password),
-    special: /[^A-Za-z0-9]/.test(password),
-    upper: /[A-Z]/.test(password),
-    number: /[0-9]/.test(password),
+    length: evaluatedPassword.length >= 8,
+    lower: /[a-z]/.test(evaluatedPassword),
+    special: /[^A-Za-z0-9]/.test(evaluatedPassword),
+    upper: /[A-Z]/.test(evaluatedPassword),
+    number: /[0-9]/.test(evaluatedPassword),
   };
   const isPasswordValid = Object.values(passwordRules).every(Boolean);
 
@@ -129,9 +137,9 @@ export default function AuthModal({ onClose, onAuthSuccess, isRequired = false, 
       return;
     }
 
-    if (mode === 'forgot') {
-      if (newPassword.length < 6) {
-        setError('New password must be at least 6 characters long');
+    if (mode === 'reset') {
+      if (!isPasswordValid) {
+        setError('New password must meet all security requirements shown below.');
         return;
       }
       if (newPassword !== confirmPassword) {
@@ -169,11 +177,24 @@ export default function AuthModal({ onClose, onAuthSuccess, isRequired = false, 
           if (onClose) onClose();
         }
       } else if (mode === 'forgot') {
-        const res = await api.forgotPassword({
+        const res = await api.forgotPassword({ email });
+        setSuccessMsg(res.message || 'If that email address is found in our database, a password reset link has been sent to your inbox.');
+        setPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+      } else if (mode === 'reset') {
+        const token = resetTokenData?.token;
+        if (!token) {
+          setError('Missing password reset token. Please request a new link.');
+          return;
+        }
+        const res = await api.resetPasswordWithToken({
+          token,
           email,
           new_password: newPassword
         });
         setSuccessMsg(res.message || 'Password reset successfully! Please sign in with your new password.');
+        if (onClearResetToken) onClearResetToken();
         setPassword('');
         setNewPassword('');
         setConfirmPassword('');
@@ -266,15 +287,17 @@ export default function AuthModal({ onClose, onAuthSuccess, isRequired = false, 
             {mode === 'login' && 'Sign In to Workspace'}
             {mode === 'register' && 'Create Your Account'}
             {mode === 'forgot' && 'Reset Your Password'}
+            {mode === 'reset' && 'Set New Password'}
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">
             {mode === 'login' && 'Please sign in with your credentials to access the workspace'}
             {mode === 'register' && 'Join the workspace with instant access'}
-            {mode === 'forgot' && 'Enter your registered email and choose a new password'}
+            {mode === 'forgot' && 'Enter your registered email to receive a password reset link'}
+            {mode === 'reset' && 'Choose a secure new password for your account'}
           </p>
 
           {/* Mode Switcher Tabs */}
-          {mode !== 'forgot' ? (
+          {mode !== 'forgot' && mode !== 'reset' ? (
             <div className="flex bg-slate-200/70 p-1 rounded-xl mt-4 border border-slate-200">
               <button
                 type="button"
@@ -298,7 +321,12 @@ export default function AuthModal({ onClose, onAuthSuccess, isRequired = false, 
           ) : (
             <button
               type="button"
-              onClick={() => { setMode('login'); setError(''); setSuccessMsg(''); }}
+              onClick={() => {
+                setMode('login');
+                setError('');
+                setSuccessMsg('');
+                if (onClearResetToken) onClearResetToken();
+              }}
               className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 hover:text-emerald-800 mt-3 pt-1 cursor-pointer"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
@@ -450,7 +478,7 @@ export default function AuthModal({ onClose, onAuthSuccess, isRequired = false, 
               </div>
             )}
 
-            {mode === 'forgot' && (
+            {mode === 'reset' && (
               <>
                 <div>
                   <label className="text-xs font-semibold text-slate-700 block mb-1">New Password</label>
@@ -461,7 +489,7 @@ export default function AuthModal({ onClose, onAuthSuccess, isRequired = false, 
                       required
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
-                      placeholder="Minimum 6 characters"
+                      placeholder="Enter new password (min. 8 characters)"
                       className="w-full pl-9 pr-10 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500 focus:bg-white"
                     />
                     <button
@@ -472,6 +500,36 @@ export default function AuthModal({ onClose, onAuthSuccess, isRequired = false, 
                     >
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
+                  </div>
+
+                  {/* Password Security Rules Indicators for Reset */}
+                  <div className="mt-2.5 p-3 bg-slate-900 border border-slate-800 rounded-xl text-xs select-none shadow-inner">
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                      <div className="space-y-2">
+                        <div className={`flex items-center gap-2 transition-colors ${passwordRules.length ? 'text-emerald-400' : 'text-slate-400'}`}>
+                          <span className="font-bold text-xs leading-none w-3 text-center">{passwordRules.length ? '✓' : '✕'}</span>
+                          <span className="text-[11px]">At least 8 characters</span>
+                        </div>
+                        <div className={`flex items-center gap-2 transition-colors ${passwordRules.lower ? 'text-emerald-400' : 'text-slate-400'}`}>
+                          <span className="font-bold text-xs leading-none w-3 text-center">{passwordRules.lower ? '✓' : '✕'}</span>
+                          <span className="text-[11px]">One lowercase letter</span>
+                        </div>
+                        <div className={`flex items-center gap-2 transition-colors ${passwordRules.special ? 'text-emerald-400' : 'text-slate-400'}`}>
+                          <span className="font-bold text-xs leading-none w-3 text-center">{passwordRules.special ? '✓' : '✕'}</span>
+                          <span className="text-[11px]">One special character</span>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <div className={`flex items-center gap-2 transition-colors ${passwordRules.upper ? 'text-emerald-400' : 'text-slate-400'}`}>
+                          <span className="font-bold text-xs leading-none w-3 text-center">{passwordRules.upper ? '✓' : '✕'}</span>
+                          <span className="text-[11px]">One uppercase letter</span>
+                        </div>
+                        <div className={`flex items-center gap-2 transition-colors ${passwordRules.number ? 'text-emerald-400' : 'text-slate-400'}`}>
+                          <span className="font-bold text-xs leading-none w-3 text-center">{passwordRules.number ? '✓' : '✕'}</span>
+                          <span className="text-[11px]">One number</span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -521,7 +579,7 @@ export default function AuthModal({ onClose, onAuthSuccess, isRequired = false, 
             )}
 
             {/* Security Math Captcha for Registration or First-Time Login */}
-            {requiresCaptcha && mode !== 'forgot' && (
+            {requiresCaptcha && mode !== 'forgot' && mode !== 'reset' && (
               <div className="p-3 bg-slate-50 border border-slate-200/90 rounded-xl space-y-1.5">
                 <div className="flex items-center justify-between">
                   <label className="text-[11px] font-semibold text-slate-700 flex items-center gap-1.5">
@@ -567,7 +625,9 @@ export default function AuthModal({ onClose, onAuthSuccess, isRequired = false, 
               <span>
                 {loading ? 'Processing...' : (
                   mode === 'login' ? 'Sign In to Workspace' : (
-                    mode === 'register' ? 'Complete Registration' : 'Reset & Update Password'
+                    mode === 'register' ? 'Complete Registration' : (
+                      mode === 'forgot' ? 'Send Password Reset Link' : 'Reset & Update Password'
+                    )
                   )
                 )}
               </span>

@@ -55,9 +55,16 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     });
-    const json = await res.json();
-    if (!res.ok) throw new Error(json.error || 'Password reset failed');
-    return json;
+    return parseResponse(res, 'Failed to request password reset link');
+  },
+
+  async resetPasswordWithToken(data) {
+    const res = await authFetch(`${API_BASE}/auth/reset-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    return parseResponse(res, 'Password reset failed');
   },
 
   async verifyEmail(token, email) {

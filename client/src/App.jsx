@@ -82,23 +82,24 @@ export default function App() {
     return null;
   });
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [resetTokenData, setResetTokenData] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Validate session and check email verification link on mount
+  // Validate session and check email verification or reset token links on mount
   useEffect(() => {
-    const checkEmailVerification = async () => {
+    const checkAuthTokens = async () => {
       const params = new URLSearchParams(window.location.search);
       const verifyToken = params.get('verify_token');
-      const verifyEmail = params.get('email');
+      const resetToken = params.get('reset_token');
+      const paramEmail = params.get('email');
 
       if (verifyToken) {
         try {
-          const res = await api.verifyEmail(verifyToken, verifyEmail);
+          const res = await api.verifyEmail(verifyToken, paramEmail);
           if (res && res.token && res.user) {
             localStorage.setItem('apex_token', res.token);
             localStorage.setItem('apex_user', JSON.stringify(res.user));
             setCurrentUser(res.user);
-            // Clean URL query parameters
             window.history.replaceState({}, document.title, window.location.pathname);
             alert(res.message || 'Email confirmed successfully! Welcome to BizProject.');
             return;
@@ -107,6 +108,13 @@ export default function App() {
           alert(err.message || 'Failed to verify email');
           window.history.replaceState({}, document.title, window.location.pathname);
         }
+      }
+
+      if (resetToken) {
+        setResetTokenData({ token: resetToken, email: paramEmail || '' });
+        setShowAuthModal(true);
+        window.history.replaceState({}, document.title, window.location.pathname);
+        return;
       }
 
       const token = localStorage.getItem('apex_token');
@@ -126,7 +134,7 @@ export default function App() {
         console.warn('Session verification error:', e);
       }
     };
-    checkEmailVerification();
+    checkAuthTokens();
   }, []);
 
   // Data states
@@ -349,6 +357,8 @@ export default function App() {
       <AuthModal
         isPage={true}
         isRequired={true}
+        resetTokenData={resetTokenData}
+        onClearResetToken={() => setResetTokenData(null)}
         onAuthSuccess={handleAuthSuccess}
       />
     );
@@ -909,7 +919,12 @@ export default function App() {
       {showAuthModal && (
         <AuthModal
           isRequired={false}
-          onClose={() => setShowAuthModal(false)}
+          resetTokenData={resetTokenData}
+          onClearResetToken={() => setResetTokenData(null)}
+          onClose={() => {
+            setShowAuthModal(false);
+            setResetTokenData(null);
+          }}
           onAuthSuccess={handleAuthSuccess}
         />
       )}

@@ -20,7 +20,7 @@ const {
 } = require('./db');
 const crypto = require('crypto');
 const { seedData } = require('./seed');
-const { notifyAdminNewUser, sendUserConfirmationEmail, isMailConfigured, ADMIN_EMAIL } = require('./email');
+const { notifyAdminNewUser, sendUserConfirmationEmail, sendPasswordResetEmail, isMailConfigured, ADMIN_EMAIL } = require('./email');
 require('dotenv').config();
 
 const app = express();
@@ -628,25 +628,89 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
   }
 });
 
-// Forgot / Reset Password
+// Forgot Password — sends password reset link to user email
 app.post('/api/auth/forgot-password', authLimiter, async (req, res) => {
   try {
-    const { email, new_password } = req.body;
-    if (!email || !new_password) {
-      return res.status(400).json({ error: 'Email and new password are required' });
+    const { email } = req.body;
+    if (!email || typeof email !== 'string') {
+      return res.status(400).json({ error: 'Please provide a valid email address' });
     }
 
-    if (new_password.length < 6) {
-      return res.status(400).json({ error: 'New password must be at least 6 characters long' });
-    }
-
-    const user = await getOne('SELECT * FROM users WHERE LOWER(TRIM(email)) = ?', [email.toLowerCase().trim()]);
+    const cleanEmail = email.toLowerCase().trim();
+    const user = await getOne('SELECT * FROM users WHERE LOWER(TRIM(email)) = ?', [cleanEmail]);
+    
+    // Always return a positive response to prevent user enumeration attacks
     if (!user) {
-      return res.status(404).json({ error: 'No account found with that email address' });
+      return res.json({
+        success: true,
+        message: 'If an account exists with that email address, a password reset link has been sent. Please check your inbox and spam folder.'
+      });
+    }
+
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString(); // 1 hour validity
+
+    await query('UPDATE users SET reset_password_token = ?, reset_password_expires = ? WHERE id = ?', [resetToken, expiresAt, user.id]);
+
+    sendPasswordResetEmail({
+      id: user.id,
+      full_name: user.full_name,
+      email: user.email,
+      resetToken
+    }).catch(e => console.error('[Email] Password reset dispatch error:', e.message));
+
+    await logActivity({
+      entity_type: 'auth',
+      entity_id: user.id,
+      user_id: user.id,
+      user_name: user.full_name,
+      action: 'PASSWORD_RESET_REQUEST',
+      details: `Password reset link requested for (${user.email})`
+    });
+
+    res.json({
+      success: true,
+      message: 'A password reset link has been sent to your email. Please check your inbox and click the link to reset your password.'
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Reset Password with Token — validates database password rules and updates hash
+app.post('/api/auth/reset-password', authLimiter, async (req, res) => {
+  try {
+    const { token, email, new_password } = req.body;
+    if (!token || !new_password || typeof new_password !== 'string') {
+      return res.status(400).json({ error: 'Reset token and new password are required' });
+    }
+
+    // Strict Password Validation Rules matching registration & database standards
+    if (new_password.length < 8 || new_password.length > 128) {
+      return res.status(400).json({ error: 'Password must be between 8 and 128 characters' });
+    }
+
+    if (!/[A-Z]/.test(new_password) || !/[a-z]/.test(new_password) || !/[0-9]/.test(new_password) || !/[^A-Za-z0-9]/.test(new_password)) {
+      return res.status(400).json({ error: 'Password must include at least one uppercase letter, one lowercase letter, one number, and one special character' });
+    }
+
+    let user;
+    if (email) {
+      user = await getOne('SELECT * FROM users WHERE LOWER(TRIM(email)) = ? AND reset_password_token = ?', [email.toLowerCase().trim(), token]);
+    } else {
+      user = await getOne('SELECT * FROM users WHERE reset_password_token = ?', [token]);
+    }
+
+    if (!user) {
+      return res.status(400).json({ error: 'Invalid or expired password reset link. Please request a new one.' });
+    }
+
+    if (user.reset_password_expires && new Date(user.reset_password_expires).getTime() < Date.now()) {
+      return res.status(400).json({ error: 'Password reset link has expired. Please request a new reset link.' });
     }
 
     const password_hash = await bcrypt.hash(new_password, 10);
-    await query('UPDATE users SET password_hash = ? WHERE id = ?', [password_hash, user.id]);
+    await query('UPDATE users SET password_hash = ?, reset_password_token = NULL, reset_password_expires = NULL WHERE id = ?', [password_hash, user.id]);
 
     await logActivity({
       entity_type: 'auth',
@@ -654,10 +718,13 @@ app.post('/api/auth/forgot-password', authLimiter, async (req, res) => {
       user_id: user.id,
       user_name: user.full_name,
       action: 'PASSWORD_RESET',
-      details: `Password was reset successfully for account (${user.email})`
+      details: `Password was reset successfully using reset token for account (${user.email})`
     });
 
-    res.json({ success: true, message: 'Password has been reset successfully. You can now log in with your new password.' });
+    res.json({
+      success: true,
+      message: 'Your password has been reset successfully! You can now sign in with your new password.'
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

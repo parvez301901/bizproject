@@ -209,6 +209,8 @@ function setupSQLiteSchema() {
   try { sqliteDb.exec("ALTER TABLE users ADD COLUMN name_reward_claimed INTEGER DEFAULT 0"); } catch(e) {}
   try { sqliteDb.exec("ALTER TABLE users ADD COLUMN email_verified INTEGER DEFAULT 1"); } catch(e) {}
   try { sqliteDb.exec("ALTER TABLE users ADD COLUMN email_verify_token TEXT"); } catch(e) {}
+  try { sqliteDb.exec("ALTER TABLE users ADD COLUMN reset_password_token TEXT"); } catch(e) {}
+  try { sqliteDb.exec("ALTER TABLE users ADD COLUMN reset_password_expires TEXT"); } catch(e) {}
   try { sqliteDb.exec("ALTER TABLE instruction_videos ADD COLUMN xp_reward INTEGER DEFAULT 25"); } catch(e) {}
 
   sqliteDb.exec(`
@@ -553,6 +555,8 @@ async function setupPostgresSchema() {
       "ALTER TABLE users ADD COLUMN IF NOT EXISTS name_reward_claimed INTEGER DEFAULT 0",
       "ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified INTEGER DEFAULT 1",
       "ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verify_token VARCHAR(255)",
+      "ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_password_token VARCHAR(255)",
+      "ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_password_expires VARCHAR(64)",
       "ALTER TABLE instruction_videos ADD COLUMN IF NOT EXISTS xp_reward INTEGER DEFAULT 25"
     ];
 
