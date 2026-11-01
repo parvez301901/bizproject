@@ -71,6 +71,82 @@ export default function OnboardingHub({ users = [], onRefresh, onOpenOnboardModa
   const [newCommonSchema, setNewCommonSchema] = useState(null);
   const [syncStatusMsg, setSyncStatusMsg] = useState('');
 
+  // Auto-complete match suggestion state for Task Title input
+  const [availableMasterTasks, setAvailableMasterTasks] = useState([]);
+  const [showCommonTaskDropdown, setShowCommonTaskDropdown] = useState(false);
+  const [showIndividualTaskDropdown, setShowIndividualTaskDropdown] = useState(false);
+
+  // All tasks pool for autocomplete suggestions (common onboarding tasks + master project tasks)
+  const allSuggestedTasks = React.useMemo(() => {
+    const list = [];
+    const seen = new Set();
+
+    // 1. From Common Onboarding Tasks
+    (commonTasks || []).forEach(t => {
+      if (t.title && !seen.has(t.title.trim().toLowerCase())) {
+        seen.add(t.title.trim().toLowerCase());
+        list.push({
+          id: t.id,
+          title: t.title.trim(),
+          category: t.category || 'General',
+          xp_reward: Number(t.xp_reward) || 35,
+          source: 'Common Template',
+          form_schema: t.form_schema || null
+        });
+      }
+    });
+
+    // 2. From Active User Tasks
+    (userTasks || []).forEach(t => {
+      if (t.title && !seen.has(t.title.trim().toLowerCase())) {
+        seen.add(t.title.trim().toLowerCase());
+        list.push({
+          id: t.id,
+          title: t.title.trim(),
+          category: t.category || 'General',
+          xp_reward: Number(t.xp_reward) || 35,
+          source: 'Onboarding',
+          form_schema: t.form_schema || null
+        });
+      }
+    });
+
+    // 3. From Master Project Tasks
+    (availableMasterTasks || []).forEach(t => {
+      if (t.title && !seen.has(t.title.trim().toLowerCase())) {
+        seen.add(t.title.trim().toLowerCase());
+        list.push({
+          id: t.id,
+          title: t.title.trim(),
+          category: t.project_name || 'General',
+          xp_reward: Number(t.xp_reward) || 50,
+          source: t.project_name ? `Project: ${t.project_name}` : 'Workspace Task',
+          form_schema: null
+        });
+      }
+    });
+
+    return list;
+  }, [commonTasks, userTasks, availableMasterTasks]);
+
+  // Autocomplete matches for Common Task input (triggers at >= 3 letters)
+  const commonTaskSuggestions = React.useMemo(() => {
+    if (!newCommonTitle || newCommonTitle.trim().length < 3) return [];
+    const q = newCommonTitle.trim().toLowerCase();
+    return allSuggestedTasks.filter(item => 
+      item.title.toLowerCase().includes(q)
+    ).slice(0, 8);
+  }, [newCommonTitle, allSuggestedTasks]);
+
+  // Autocomplete matches for Individual Candidate Task input (triggers at >= 3 letters)
+  const individualTaskSuggestions = React.useMemo(() => {
+    if (!newTitle || newTitle.trim().length < 3) return [];
+    const q = newTitle.trim().toLowerCase();
+    return allSuggestedTasks.filter(item => 
+      item.title.toLowerCase().includes(q)
+    ).slice(0, 8);
+  }, [newTitle, allSuggestedTasks]);
+
   // Team Member Wizard State
   const [wizardStep, setWizardStep] = useState(1);
   const [insertedName, setInsertedName] = useState(currentUser?.full_name || '');
@@ -126,9 +202,21 @@ export default function OnboardingHub({ users = [], onRefresh, onOpenOnboardModa
     }
   };
 
+  const loadAllMasterTasks = async () => {
+    try {
+      const res = await api.getTasks();
+      if (Array.isArray(res)) {
+        setAvailableMasterTasks(res);
+      }
+    } catch (e) {
+      console.warn('Failed to load workspace master tasks:', e);
+    }
+  };
+
   useEffect(() => {
     if (isAdmin || isManager) {
       loadCommonTasks();
+      loadAllMasterTasks();
     }
   }, [isAdmin, isManager]);
 
@@ -1174,15 +1262,81 @@ export default function OnboardingHub({ users = [], onRefresh, onOpenOnboardModa
                     </span>
                     <span className="text-[10px] text-emerald-600 font-medium">{t('onboarding.instantRewardNote')}</span>
                   </div>
-                  <div className="flex flex-col sm:flex-row items-center gap-2">
-                    <input
-                      type="text"
-                      required
-                      value={newTitle}
-                      onChange={(e) => setNewTitle(e.target.value)}
-                      placeholder={t('onboarding.taskTitlePlaceholder')}
-                      className="flex-1 text-xs bg-white border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:border-emerald-500 w-full font-medium"
-                    />
+                  <div className="flex flex-col sm:flex-row items-center gap-2 relative">
+                    <div className="flex-1 w-full relative">
+                      <input
+                        type="text"
+                        required
+                        value={newTitle}
+                        onChange={(e) => {
+                          setNewTitle(e.target.value);
+                          setShowIndividualTaskDropdown(true);
+                        }}
+                        onFocus={() => setShowIndividualTaskDropdown(true)}
+                        placeholder={t('onboarding.taskTitlePlaceholder')}
+                        className="w-full text-xs bg-white border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:border-emerald-500 font-medium"
+                      />
+
+                      {/* Auto-complete Dropdown Menu for Individual Employee Task Assignment */}
+                      {showIndividualTaskDropdown && individualTaskSuggestions.length > 0 && (
+                        <>
+                          <div 
+                            className="fixed inset-0 z-20" 
+                            onClick={() => setShowIndividualTaskDropdown(false)} 
+                          />
+                          <div className="absolute left-0 right-0 top-full mt-1.5 z-30 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden divide-y divide-slate-100 max-h-60 overflow-y-auto animate-scaleUp">
+                            <div className="p-2 bg-emerald-50/70 border-b border-emerald-100 flex items-center justify-between text-[11px] font-bold text-emerald-900">
+                              <span className="flex items-center gap-1.5">
+                                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                                <span>Matching Tasks (Click to select & auto-fill)</span>
+                              </span>
+                              <span className="text-[10px] font-normal text-emerald-700">3+ letters</span>
+                            </div>
+                            {individualTaskSuggestions.map(match => (
+                              <div
+                                key={match.id}
+                                onClick={() => {
+                                  setNewTitle(match.title);
+                                  if (match.category) {
+                                    const validCats = ['HR', 'IT Security', 'Training', 'Dev & Tools', 'Culture', 'General'];
+                                    if (validCats.includes(match.category)) {
+                                      setNewCategory(match.category);
+                                    }
+                                  }
+                                  if (match.xp_reward) {
+                                    setNewXpReward(match.xp_reward);
+                                  }
+                                  if (match.form_schema) {
+                                    setNewCustomSchema(match.form_schema);
+                                  }
+                                  setShowIndividualTaskDropdown(false);
+                                }}
+                                className="p-2.5 hover:bg-emerald-50 cursor-pointer transition-colors flex items-center justify-between gap-2 group text-left"
+                              >
+                                <div className="min-w-0 flex-1">
+                                  <p className="text-xs font-semibold text-slate-800 group-hover:text-emerald-800 truncate">
+                                    {match.title}
+                                  </p>
+                                  <p className="text-[10px] text-slate-400 flex items-center gap-2 mt-0.5">
+                                    <span className="bg-slate-100 px-1.5 py-0.2 rounded text-slate-600 font-medium">
+                                      {match.category}
+                                    </span>
+                                    <span>&bull;</span>
+                                    <span className="text-emerald-600 font-bold">+{match.xp_reward} XP</span>
+                                    <span>&bull;</span>
+                                    <span className="truncate">{match.source}</span>
+                                  </p>
+                                </div>
+                                <span className="text-[11px] font-bold text-emerald-600 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 flex items-center gap-1">
+                                  <span>Use</span>
+                                  <ArrowRight className="w-3 h-3" />
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                    </div>
                     <div className="flex items-center gap-1.5 w-full sm:w-auto">
                       <select
                         value={newCategory}
@@ -1448,16 +1602,88 @@ export default function OnboardingHub({ users = [], onRefresh, onOpenOnboardModa
             </h3>
 
             <form onSubmit={handleCreateCommonTask} className="grid grid-cols-1 md:grid-cols-12 gap-3">
-              <div className="md:col-span-6">
-                <label className="text-xs font-bold text-slate-700 block mb-1">Task Title *</label>
+              <div className="md:col-span-6 relative">
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-bold text-slate-700">Task Title *</label>
+                  {newCommonTitle.trim().length >= 3 && (
+                    <span className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1">
+                      <Sparkles className="w-3 h-3 text-amber-400" />
+                      <span>{commonTaskSuggestions.length} match{commonTaskSuggestions.length === 1 ? '' : 'es'} found</span>
+                    </span>
+                  )}
+                </div>
                 <input
                   type="text"
                   required
                   value={newCommonTitle}
-                  onChange={(e) => setNewCommonTitle(e.target.value)}
+                  onChange={(e) => {
+                    setNewCommonTitle(e.target.value);
+                    setShowCommonTaskDropdown(true);
+                  }}
+                  onFocus={() => setShowCommonTaskDropdown(true)}
                   placeholder="e.g. Complete security compliance assessment and data privacy policy"
-                  className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-emerald-500 focus:bg-white"
+                  className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-emerald-500 focus:bg-white transition-all font-medium"
                 />
+
+                {/* Auto-complete Dropdown Menu */}
+                {showCommonTaskDropdown && commonTaskSuggestions.length > 0 && (
+                  <>
+                    <div 
+                      className="fixed inset-0 z-20" 
+                      onClick={() => setShowCommonTaskDropdown(false)} 
+                    />
+                    <div className="absolute left-0 right-0 top-full mt-1.5 z-30 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden divide-y divide-slate-100 max-h-60 overflow-y-auto animate-scaleUp">
+                      <div className="p-2 bg-emerald-50/70 border-b border-emerald-100 flex items-center justify-between text-[11px] font-bold text-emerald-900">
+                        <span className="flex items-center gap-1.5">
+                          <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                          <span>Matching Tasks (Click to auto-populate)</span>
+                        </span>
+                        <span className="text-[10px] font-normal text-emerald-700">3+ letters</span>
+                      </div>
+                      {commonTaskSuggestions.map(match => (
+                        <div
+                          key={match.id}
+                          onClick={() => {
+                            setNewCommonTitle(match.title);
+                            if (match.category) {
+                              const validCats = ['HR & Profile', 'Legal & HR', 'IT Security', 'Team & Culture', 'Engineering & Dev', 'Training & SOP', 'General'];
+                              if (validCats.includes(match.category)) {
+                                setNewCommonCategory(match.category);
+                              }
+                            }
+                            if (match.xp_reward) {
+                              setNewCommonXp(match.xp_reward);
+                            }
+                            if (match.form_schema) {
+                              setNewCommonSchema(match.form_schema);
+                            }
+                            setShowCommonTaskDropdown(false);
+                          }}
+                          className="p-2.5 hover:bg-emerald-50 cursor-pointer transition-colors flex items-center justify-between gap-2 group"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs font-semibold text-slate-800 group-hover:text-emerald-800 truncate">
+                              {match.title}
+                            </p>
+                            <p className="text-[10px] text-slate-400 flex items-center gap-2 mt-0.5">
+                              <span className="bg-slate-100 px-1.5 py-0.2 rounded text-slate-600 font-medium">
+                                {match.category}
+                              </span>
+                              <span>&bull;</span>
+                              <span className="text-emerald-600 font-bold">+{match.xp_reward} XP</span>
+                              <span>&bull;</span>
+                              <span className="truncate">{match.source}</span>
+                            </p>
+                          </div>
+                          <span className="text-[11px] font-bold text-emerald-600 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 flex items-center gap-1">
+                            <span>Use</span>
+                            <ArrowRight className="w-3 h-3" />
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
               </div>
 
               <div className="md:col-span-3">
